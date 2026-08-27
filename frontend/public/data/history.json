@@ -1,0 +1,100 @@
+{
+  "last_updated": "2026-08-14T08:50:01Z",
+  "stats": {
+    "avg_gasoline_95": 1.705,
+    "avg_diesel_a": 1.8,
+    "trend_gasoline_95": 0.0,
+    "trend_diesel_a": 0.0,
+    "cheapest_gasoline_95": [
+      {
+        "id": "16133",
+        "name": "PETROPRIX",
+        "address": "CALLE RIU XUQUER, 38",
+        "price": 1.489,
+        "latitude": 39.388528,
+        "longitude": -0.399083
+      },
+      {
+        "id": "13327",
+        "name": "PLENERGY",
+        "address": "CALLE OCHO, 7",
+        "price": 1.489,
+        "latitude": 39.390417,
+        "longitude": -0.406389
+      },
+      {
+        "id": "12923",
+        "name": "BALLENOIL",
+        "address": "CALLE UE3-SECTOR2.A3, 1",
+        "price": 1.489,
+        "latitude": 39.389,
+        "longitude": -0.409583
+      },
+      {
+        "id": "4128",
+        "name": "GASOLINERA ALFAFAR",
+        "address": "Pgno. nº 3 - Parcela H-11",
+        "price": 1.489,
+        "latitude": 39.415528,
+        "longitude": -0.398056
+      },
+      {
+        "id": "3871",
+        "name": "PLENERGY",
+        "address": "AVENIDA ALBUFERA, 9",
+        "price": 1.489,
+        "latitude": 39.423222,
+        "longitude": -0.388056
+      }
+    ],
+    "cheapest_diesel_a": [
+      {
+        "id": "12895",
+        "name": "LOWCOST24H",
+        "address": "AVENIDA PADRE CARLOS FERRIS, 11",
+        "price": 1.599,
+        "latitude": 39.392111,
+        "longitude": -0.40775
+      },
+      {
+        "id": "16133",
+        "name": "PETROPRIX",
+        "address": "CALLE RIU XUQUER, 38",
+        "price": 1.599,
+        "latitude": 39.388528,
+        "longitude": -0.399083
+      },
+      {
+        "id": "13327",
+        "name": "PLENERGY",
+        "address": "CALLE OCHO, 7",
+        "price": 1.599,
+        "latitude": 39.390417,
+        "longitude": -0.406389
+      },
+      {
+        "id": "12923",
+        "name": "BALLENOIL",
+        "address": "CALLE UE3-SECTOR2.A3, 1",
+        "price": 1.599,
+        "latitude": 39.389,
+        "longitude": -0.409583
+      },
+      {
+        "id": "3871",
+        "name": "PLENERGY",
+        "address": "AVENIDA ALBUFERA, 9",
+        "price": 1.599,
+        "latitude": 39.423222,
+        "longitude": -0.388056
+      }
+    ]
+  },
+  "history": [
+    {
+      "date": "2026-08-14",
+      "avg_gasoline_95": 1.705,
+      "avg_diesel_a": 1.8
+    }
+  ]
+}
