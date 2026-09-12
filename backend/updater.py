@@ -2,17 +2,20 @@
 """
 MITECO Gas Price Data Pipeline (updater.py)
 Fetches daily fuel prices for gas stations in the province of Valencia (Spain),
-cleans and parses the data, updates a rolling 7-day history, calculates
-statistics (trends, averages, cheapest stations), and exports JSON files.
+cleans and parses the data, maintains a per-station rolling 7-day historical record,
+computes station-level statistics (mean, price trend, percentual trend), and exports
+a single consolidated dataset to `stations.json`.
 """
 
 import os
+import sys
 import json
+import ssl
 import urllib.request
 from datetime import datetime, timezone
 
 # Configuration
-PROVINCE_ID = "46" # Valencia
+PROVINCE_ID = "46"  # Valencia
 MITECO_URL = f"https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/FiltroProvincia/{PROVINCE_ID}"
 RETENTION_DAYS = 7
 
@@ -20,29 +23,57 @@ RETENTION_DAYS = 7
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(PROJECT_ROOT, "frontend", "public", "data")
-LATEST_JSON_PATH = os.path.join(DATA_DIR, "latest.json")
-HISTORY_JSON_PATH = os.path.join(DATA_DIR, "history.json")
+STATIONS_JSON_PATH = os.path.join(DATA_DIR, "stations.json")
+DEPRECATED_FILES = [
+    os.path.join(DATA_DIR, "latest.json"),
+    os.path.join(DATA_DIR, "history.json"),
+]
 
 
 def fetch_data(url):
     """
     Fetches the JSON data from the MITECO API.
-    Attempts to use the requests library if available; otherwise falls back to urllib.
+    Attempts to use requests with custom SSL context (SECLEVEL=1 required for legacy
+    Spanish administration endpoints), falling back to urllib.request.
     """
     print(f"[{datetime.now().isoformat()}] Fetching data from: {url}")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+    }
+
+    # Attempt 1: requests with SECLEVEL=1 adapter
     try:
         import requests
-        response = requests.get(url, timeout=30)
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.ssl_ import create_urllib3_context
+
+        class MitecoAdapter(HTTPAdapter):
+            def init_poolmanager(self, *args, **kwargs):
+                try:
+                    kwargs["ssl_context"] = create_urllib3_context(ciphers="DEFAULT@SECLEVEL=1")
+                except Exception:
+                    pass
+                return super().init_poolmanager(*args, **kwargs)
+
+        session = requests.Session()
+        session.mount("https://", MitecoAdapter())
+        response = session.get(url, headers=headers, timeout=30)
         response.raise_for_status()
         return response.json()
-    except ImportError:
-        print("requests library not found. Falling back to urllib.request...")
-        req = urllib.request.Request(
-            url, 
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        )
-        with urllib.request.urlopen(req, timeout=30) as response:
-            return json.loads(response.read().decode("utf-8"))
+    except Exception as e:
+        print(f"requests fetch failed ({e}). Falling back to urllib.request...")
+
+    # Attempt 2: urllib.request with SECLEVEL=1 SSL context
+    ctx = ssl.create_default_context()
+    try:
+        ctx.set_ciphers("DEFAULT@SECLEVEL=1")
+    except Exception:
+        pass
+
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, context=ctx, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
 
 
 def parse_float(val):
@@ -80,7 +111,7 @@ def clean_station_data(raw_stations):
         # Coordinates
         lat = parse_float(station.get("Latitud"))
         lng = parse_float(station.get("Longitud (WGS84)"))
-        
+
         # Coordinate sanity check
         if lat is None or lng is None or lat == 0.0 or lng == 0.0:
             skipped_coords += 1
@@ -120,11 +151,127 @@ def clean_station_data(raw_stations):
             "price_gasoline_95": price_g95,
             "price_diesel_a": price_da,
             "price_gasoline_98": price_g98,
-            "price_diesel_premium": price_da_premium
+            "price_diesel_premium": price_da_premium,
         })
 
     print(f"Processed raw stations. Success: {len(clean_list)}, Skipped (Invalid Coords): {skipped_coords}, Skipped (No valid prices): {skipped_no_price}")
     return clean_list
+
+
+def compute_station_stats(data_entries):
+    """
+    Computes rolling statistics (mean, price change trend, and percentual trend)
+    for each fuel type over the rolling window of daily observations.
+    """
+    fuels = ["gasoline_95", "diesel_a", "gasoline_98", "diesel_premium"]
+    stats = {}
+
+    for fuel in fuels:
+        price_key = f"price_{fuel}"
+        prices = [d[price_key] for d in data_entries if d.get(price_key) is not None]
+
+        if not prices:
+            stats[f"mean_{price_key}"] = None
+            stats[f"trend_{price_key}"] = None
+            stats[f"trend_percent_{price_key}"] = None
+        elif len(prices) == 1:
+            stats[f"mean_{price_key}"] = round(prices[0], 3)
+            stats[f"trend_{price_key}"] = 0.0
+            stats[f"trend_percent_{price_key}"] = 0.0
+        else:
+            oldest = prices[0]
+            latest = prices[-1]
+            mean_val = round(sum(prices) / len(prices), 3)
+            trend_val = round(latest - oldest, 3)
+            trend_pct = round(((latest - oldest) / oldest) * 100, 2) if oldest > 0 else 0.0
+
+            stats[f"mean_{price_key}"] = mean_val
+            stats[f"trend_{price_key}"] = trend_val
+            stats[f"trend_percent_{price_key}"] = trend_pct
+
+    return stats
+
+
+def update_stations_dataset(existing_stations_map, clean_scraped_stations, date_str, retention_days=RETENTION_DAYS):
+    """
+    Merges newly scraped station data with existing rolling historical data,
+    pruning observations older than retention_days (calendar difference),
+    and updating station-level statistics.
+    """
+    try:
+        ref_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        ref_date = datetime.now(timezone.utc).date()
+
+    scraped_map = {s["id"]: s for s in clean_scraped_stations}
+    all_station_ids = set(existing_stations_map.keys()).union(scraped_map.keys())
+
+    updated_stations = []
+
+    for s_id in all_station_ids:
+        scraped_st = scraped_map.get(s_id)
+        existing_st = existing_stations_map.get(s_id)
+
+        source = scraped_st or existing_st
+        station_record = {
+            "id": source["id"],
+            "name": source["name"],
+            "address": source["address"],
+            "locality": source["locality"],
+            "municipality": source["municipality"],
+            "postal_code": source["postal_code"],
+            "latitude": source["latitude"],
+            "longitude": source["longitude"],
+            "schedule": source["schedule"],
+        }
+
+        # Retrieve existing historical observations
+        data_entries = [dict(d) for d in existing_st.get("data", [])] if existing_st else []
+
+        # If station was observed today, update or append today's price entry
+        if scraped_st:
+            today_entry = {
+                "date": date_str,
+                "price_gasoline_95": scraped_st["price_gasoline_95"],
+                "price_diesel_a": scraped_st["price_diesel_a"],
+                "price_gasoline_98": scraped_st["price_gasoline_98"],
+                "price_diesel_premium": scraped_st["price_diesel_premium"],
+            }
+            existing_idx = next((i for i, d in enumerate(data_entries) if d.get("date") == date_str), None)
+            if existing_idx is not None:
+                data_entries[existing_idx] = today_entry
+            else:
+                data_entries.append(today_entry)
+
+        # Sort entries chronologically
+        data_entries.sort(key=lambda d: d.get("date", ""))
+
+        # Prune entries older than retention_days (calendar difference)
+        valid_entries = []
+        for entry in data_entries:
+            try:
+                entry_date = datetime.strptime(entry.get("date", ""), "%Y-%m-%d").date()
+                diff_days = (ref_date - entry_date).days
+                if 0 <= diff_days < retention_days:
+                    valid_entries.append(entry)
+            except (ValueError, TypeError):
+                continue
+
+        # Keep at most retention_days records
+        if len(valid_entries) > retention_days:
+            valid_entries = valid_entries[-retention_days:]
+
+        # If no entries remain within the window, drop station
+        if not valid_entries:
+            continue
+
+        station_record["data"] = valid_entries
+        station_record["stats"] = compute_station_stats(valid_entries)
+        updated_stations.append(station_record)
+
+    # Sort deterministically by municipality, then name, then id
+    updated_stations.sort(key=lambda s: (s.get("municipality", ""), s.get("name", ""), s.get("id", "")))
+    return updated_stations
 
 
 def main():
@@ -133,7 +280,7 @@ def main():
         raw_data = fetch_data(MITECO_URL)
     except Exception as e:
         print(f"Error fetching data: {e}")
-        return
+        sys.exit(1)
 
     # Extract date from response (format: "dd/mm/yyyy hh:mm:ss")
     fecha_raw = raw_data.get("Fecha", "")
@@ -146,7 +293,7 @@ def main():
             print(f"Data reference date from MITECO: {date_str}")
         except Exception as e:
             print(f"Error parsing date string '{fecha_raw}': {e}")
-    
+
     if not date_str:
         date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         print(f"Falling back to system date: {date_str}")
@@ -154,128 +301,47 @@ def main():
     raw_stations = raw_data.get("ListaEESSPrecio", [])
     if not raw_stations:
         print("No stations found in the API response.")
-        return
+        sys.exit(1)
 
     # 2. Clean and parse data
     clean_stations = clean_station_data(raw_stations)
     if not clean_stations:
         print("No valid stations remaining after cleaning.")
-        return
+        sys.exit(1)
 
-    # 3. History Management & Rolling Window
-    # Create directories if they do not exist
+    # 3. Load existing dataset
     os.makedirs(DATA_DIR, exist_ok=True)
+    existing_stations_map = {}
 
-    history_entries = []
-    if os.path.exists(HISTORY_JSON_PATH):
+    if os.path.exists(STATIONS_JSON_PATH):
         try:
-            with open(HISTORY_JSON_PATH, "r", encoding="utf-8") as f:
-                history_data = json.load(f)
-                if isinstance(history_data, dict) and "history" in history_data:
-                    history_entries = history_data["history"]
-                elif isinstance(history_data, list):
-                    history_entries = history_data
-                print(f"Loaded {len(history_entries)} entries from existing history.json")
+            with open(STATIONS_JSON_PATH, "r", encoding="utf-8") as f:
+                loaded_list = json.load(f)
+                if isinstance(loaded_list, list):
+                    for st in loaded_list:
+                        if isinstance(st, dict) and "id" in st:
+                            existing_stations_map[st["id"]] = st
+            print(f"Loaded {len(existing_stations_map)} existing station records from stations.json")
         except Exception as e:
-            print(f"Warning: Could not read existing history.json: {e}")
+            print(f"Warning: Could not read existing stations.json: {e}")
 
-    # Calculate current day's averages
-    valid_g95 = [s["price_gasoline_95"] for s in clean_stations if s["price_gasoline_95"] is not None]
-    valid_da = [s["price_diesel_a"] for s in clean_stations if s["price_diesel_a"] is not None]
+    # 4. Merge rolling history & calculate per-station statistics
+    updated_stations = update_stations_dataset(existing_stations_map, clean_stations, date_str)
+    print(f"Updated stations dataset: {len(updated_stations)} active stations.")
 
-    avg_g95 = round(sum(valid_g95) / len(valid_g95), 3) if valid_g95 else 0.0
-    avg_da = round(sum(valid_da) / len(valid_da), 3) if valid_da else 0.0
+    # 5. Export consolidated stations.json
+    print(f"Saving data to {STATIONS_JSON_PATH}")
+    with open(STATIONS_JSON_PATH, "w", encoding="utf-8") as f:
+        json.dump(updated_stations, f, indent=2, ensure_ascii=False)
 
-    print(f"Current Averages - Gasoline 95: {avg_g95:.3f} EUR, Diesel A: {avg_da:.3f} EUR")
-
-    # Update or append current day's record
-    existing_entry = next((e for e in history_entries if e.get("date") == date_str), None)
-    if existing_entry:
-        print(f"Updating existing record for date: {date_str}")
-        existing_entry["avg_gasoline_95"] = avg_g95
-        existing_entry["avg_diesel_a"] = avg_da
-    else:
-        print(f"Appending new record for date: {date_str}")
-        history_entries.append({
-            "date": date_str,
-            "avg_gasoline_95": avg_g95,
-            "avg_diesel_a": avg_da
-        })
-
-    # Sort history entries by date ascending
-    history_entries.sort(key=lambda x: x.get("date", ""))
-
-    # Retain only the last RETENTION_DAYS
-    if len(history_entries) > RETENTION_DAYS:
-        print(f"Enforcing retention limit of {RETENTION_DAYS} days. Removing {len(history_entries) - RETENTION_DAYS} old records.")
-        history_entries = history_entries[-RETENTION_DAYS:]
-
-    # 4. Statistics Calculation
-    # Trend comparison with oldest record in rolling window
-    trend_g95 = 0.0
-    trend_da = 0.0
-    if len(history_entries) > 1:
-        oldest_entry = history_entries[0]
-        old_avg_g95 = oldest_entry.get("avg_gasoline_95", 0.0)
-        old_avg_da = oldest_entry.get("avg_diesel_a", 0.0)
-        
-        if old_avg_g95 > 0:
-            trend_g95 = round(((avg_g95 - old_avg_g95) / old_avg_g95) * 100, 2)
-        if old_avg_da > 0:
-            trend_da = round(((avg_da - old_avg_da) / old_avg_da) * 100, 2)
-
-    print(f"Trend - Gasoline 95: {trend_g95:+.2f}%, Diesel A: {trend_da:+.2f}% (compared to oldest record: {history_entries[0]['date']})")
-
-    # Top 5 cheapest gas stations overall (for G95 and Diesel A)
-    g95_stations = [s for s in clean_stations if s["price_gasoline_95"] is not None]
-    g95_sorted = sorted(g95_stations, key=lambda x: x["price_gasoline_95"])
-    cheapest_g95 = []
-    for s in g95_sorted[:5]:
-        cheapest_g95.append({
-            "id": s["id"],
-            "name": s["name"],
-            "address": s["address"],
-            "price": s["price_gasoline_95"],
-            "latitude": s["latitude"],
-            "longitude": s["longitude"]
-        })
-
-    da_stations = [s for s in clean_stations if s["price_diesel_a"] is not None]
-    da_sorted = sorted(da_stations, key=lambda x: x["price_diesel_a"])
-    cheapest_da = []
-    for s in da_sorted[:5]:
-        cheapest_da.append({
-            "id": s["id"],
-            "name": s["name"],
-            "address": s["address"],
-            "price": s["price_diesel_a"],
-            "latitude": s["latitude"],
-            "longitude": s["longitude"]
-        })
-
-    # Prepare outputs
-    latest_output = clean_stations
-    history_output = {
-        "last_updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "stats": {
-            "avg_gasoline_95": avg_g95,
-            "avg_diesel_a": avg_da,
-            "trend_gasoline_95": trend_g95,
-            "trend_diesel_a": trend_da,
-            "cheapest_gasoline_95": cheapest_g95,
-            "cheapest_diesel_a": cheapest_da
-        },
-        "history": history_entries
-    }
-
-    # 5. Export JSON files
-    print(f"Saving data to {LATEST_JSON_PATH}")
-    with open(LATEST_JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump(latest_output, f, indent=2, ensure_ascii=False)
-
-    print(f"Saving data to {HISTORY_JSON_PATH}")
-    with open(HISTORY_JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump(history_output, f, indent=2, ensure_ascii=False)
+    # 6. Remove redundant deprecated files if present
+    for old_file in DEPRECATED_FILES:
+        if os.path.exists(old_file):
+            try:
+                os.remove(old_file)
+                print(f"Cleaned up deprecated file: {old_file}")
+            except OSError as e:
+                print(f"Warning: Could not remove {old_file}: {e}")
 
     print("Pipeline update complete successfully.")
 

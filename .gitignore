@@ -1,3 +1,15 @@
-notes.md
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
 .venv/
 .ruff_cache/
+.pytest_cache/
+
+# Personal notes
+notes.md
+
+# Frontend build & dependencies (for Phase 2)
+node_modules/
+frontend/dist/
+.vite/
