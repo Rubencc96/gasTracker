@@ -206,3 +206,117 @@ def test_update_stations_dataset_pruning_and_merge():
     assert station["stats"]["trend_price_gasoline_95"] == 0.050
     # Percent: (0.050 / 1.650) * 100 = 3.03%
     assert station["stats"]["trend_percent_price_gasoline_95"] == 3.03
+
+
+def test_update_stations_dataset_user_scenario_retention_days():
+    """
+    Validates user requirement:
+    - If ref_date is 2026-09-13 (or 2026-11-13) and RETENTION_DAYS is 7:
+    - Yesterday's data (2026-09-12) MUST be preserved.
+    - Data up to 7 days old (2026-09-06) MUST be preserved.
+    - Data strictly older than 7 days (e.g. 2026-09-05, 2026-09-04, anterior al 6) MUST be pruned.
+    - Subsequent runs on the same date update today's prices without erasing yesterday's data.
+    """
+    existing_map = {
+        "1001": {
+            "id": "1001",
+            "name": "REPSOL",
+            "address": "AVENIDA DEL CID 10",
+            "locality": "VALENCIA",
+            "municipality": "Valencia",
+            "postal_code": "46014",
+            "latitude": 39.47,
+            "longitude": -0.38,
+            "schedule": "L-D: 24H",
+            "data": [
+                {"date": "2026-09-04", "price_gasoline_95": 1.500, "price_diesel_a": 1.400},  # 9 days old -> PRUNED
+                {"date": "2026-09-05", "price_gasoline_95": 1.510, "price_diesel_a": 1.410},  # 8 days old (anterior al 6) -> PRUNED
+                {"date": "2026-09-06", "price_gasoline_95": 1.520, "price_diesel_a": 1.420},  # 7 days old -> KEPT
+                {"date": "2026-09-07", "price_gasoline_95": 1.530, "price_diesel_a": 1.430},  # 6 days old -> KEPT
+                {"date": "2026-09-08", "price_gasoline_95": 1.540, "price_diesel_a": 1.440},  # 5 days old -> KEPT
+                {"date": "2026-09-09", "price_gasoline_95": 1.550, "price_diesel_a": 1.450},  # 4 days old -> KEPT
+                {"date": "2026-09-10", "price_gasoline_95": 1.560, "price_diesel_a": 1.460},  # 3 days old -> KEPT
+                {"date": "2026-09-11", "price_gasoline_95": 1.570, "price_diesel_a": 1.470},  # 2 days old -> KEPT
+                {"date": "2026-09-12", "price_gasoline_95": 1.580, "price_diesel_a": 1.480},  # 1 day old (ayer) -> KEPT
+            ],
+        }
+    }
+
+    scraped_today = [
+        {
+            "id": "1001",
+            "name": "REPSOL",
+            "address": "AVENIDA DEL CID 10",
+            "locality": "VALENCIA",
+            "municipality": "Valencia",
+            "postal_code": "46014",
+            "latitude": 39.47,
+            "longitude": -0.38,
+            "schedule": "L-D: 24H",
+            "price_gasoline_95": 1.590,
+            "price_diesel_a": 1.490,
+            "price_gasoline_98": None,
+            "price_diesel_premium": None,
+        }
+    ]
+
+    # First run on 2026-09-13
+    result = update_stations_dataset(existing_map, scraped_today, date_str="2026-09-13", retention_days=7)
+    assert len(result) == 1
+    station = result[0]
+
+    # Dates present in data:
+    result_dates = [d["date"] for d in station["data"]]
+
+    # Assert 2026-09-04 and 2026-09-05 were PRUNED
+    assert "2026-09-04" not in result_dates
+    assert "2026-09-05" not in result_dates
+
+    # Assert 2026-09-06 (7 days old) was KEPT
+    assert "2026-09-06" in result_dates
+
+    # Assert 2026-09-12 (ayer) was KEPT
+    assert "2026-09-12" in result_dates
+    yesterday_entry = next(d for d in station["data"] if d["date"] == "2026-09-12")
+    assert yesterday_entry["price_gasoline_95"] == 1.580
+
+    # Assert 2026-09-13 (hoy) was ADDED
+    assert "2026-09-13" in result_dates
+    today_entry = next(d for d in station["data"] if d["date"] == "2026-09-13")
+    assert today_entry["price_gasoline_95"] == 1.590
+
+    # Total entries: 2026-09-06 to 2026-09-13 (8 days)
+    assert len(result_dates) == 8
+    assert result_dates == [
+        "2026-09-06",
+        "2026-09-07",
+        "2026-09-08",
+        "2026-09-09",
+        "2026-09-10",
+        "2026-09-11",
+        "2026-09-12",
+        "2026-09-13",
+    ]
+
+    # Stats: oldest is 2026-09-06 (1.520), latest is 2026-09-13 (1.590)
+    # Trend: 1.590 - 1.520 = 0.070
+    assert station["stats"]["trend_price_gasoline_95"] == 0.070
+
+    # Second run on the SAME DAY with updated price (e.g. afternoon price change to 1.595)
+    scraped_afternoon = [
+        {
+            **scraped_today[0],
+            "price_gasoline_95": 1.595,
+        }
+    ]
+    # Update existing_map with previous run output
+    updated_map = {station["id"]: station}
+    result2 = update_stations_dataset(updated_map, scraped_afternoon, date_str="2026-09-13", retention_days=7)
+    station2 = result2[0]
+
+    # Assert still 8 entries, 2026-09-12 is STILL THERE, and 2026-09-13 was updated in place
+    result_dates2 = [d["date"] for d in station2["data"]]
+    assert len(result_dates2) == 8
+    assert "2026-09-12" in result_dates2
+    updated_today = next(d for d in station2["data"] if d["date"] == "2026-09-13")
+    assert updated_today["price_gasoline_95"] == 1.595

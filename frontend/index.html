@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Fuel Valencia Tracker | Precios de Gasolineras en Tiempo Real</title>
+    <meta name="description" content="Rastreador de precios de gasolina y diésel en Valencia. Rutas inteligentes, histórico de 7 días y gasolineras más baratas." />
+    
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'><path d='M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77zM12 10H6V5h6v5zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z'/></svg>" />
+  </head>
+  <body class="h-full flex flex-col font-sans overflow-hidden text-slate-800" x-data="gasApp()" x-init="window.__gasTrackerApp = $data">
+    
+    <!-- Top Header Navigation -->
+    <header class="bg-white border-b border-slate-200 z-30 shrink-0 shadow-xs">
+      <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        
+        <!-- Desktop Header Row (md and above) -->
+        <div class="hidden md:flex items-center justify-between h-16">
+          <!-- Brand Logo & Title -->
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="text-lg font-extrabold tracking-tight text-slate-900 leading-tight">Fuel Valencia</h1>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800">
+                  En vivo
+                </span>
+              </div>
+              <p class="text-xs text-slate-500">Precios oficiales MITECO · Histórico 7 días y rutas inteligentes</p>
+            </div>
+          </div>
+
+          <!-- Fuel Selector Pills (Desktop) -->
+          <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+            <template x-for="(fuel, key) in fuelTypes" :key="key">
+              <button
+                @click="setFuel(key)"
+                :class="selectedFuel === key 
+                  ? 'bg-white text-slate-900 shadow-xs font-semibold' 
+                  : 'text-slate-600 hover:text-slate-900 font-medium'"
+                class="px-3 py-1.5 rounded-lg text-xs transition-all duration-150 flex items-center gap-1.5"
+              >
+                <span class="w-2 h-2 rounded-full" :style="`background-color: ${fuel.color}`"></span>
+                <span x-text="fuel.label"></span>
+              </button>
+            </template>
+          </div>
+
+          <!-- Geolocation / Quick Actions (Desktop) -->
+          <div class="flex items-center gap-2">
+            <button
+              @click="locateUser()"
+              :disabled="userLocation.locating"
+              :class="userLocation.active ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
+              class="px-3 py-1.5 border rounded-lg text-xs font-semibold shadow-xs transition inline-flex items-center gap-2 disabled:opacity-50"
+              title="Obtener gasolineras cercanas y mejores recomendaciones"
+            >
+              <svg x-show="!userLocation.locating" class="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <svg x-show="userLocation.locating" class="animate-spin w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span x-text="userLocation.active ? 'Cerca de ti' : 'Mi Ubicación'"></span>
+            </button>
+
+            <!-- Pick location on map button -->
+            <button
+              @click="togglePickLocationOnMap()"
+              :class="isPickingLocationOnMap ? 'bg-amber-100 border-amber-300 text-amber-900 ring-2 ring-amber-400' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
+              class="px-2.5 py-1.5 border rounded-lg text-xs font-semibold shadow-xs transition inline-flex items-center gap-1.5"
+              title="Haz clic en cualquier punto del mapa para fijar tu ubicación"
+            >
+              <span>🎯</span>
+              <span x-text="isPickingLocationOnMap ? 'Toca el mapa...' : 'Fijar en mapa'"></span>
+            </button>
+
+            <!-- Fallback sample location button if not on mobile GPS -->
+            <button
+              x-show="!userLocation.active"
+              @click="locateUser(true)"
+              class="px-2 py-1.5 text-xs text-slate-500 hover:text-indigo-600 font-medium"
+              title="Simular ubicación en el centro de Valencia"
+            >
+              📍 Valencia Centro
+            </button>
+          </div>
+        </div>
+
+        <!-- Mobile Header (Row 1: Title & GPS, Row 2: Fuel Pills) -->
+        <div class="md:hidden py-2 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-xs">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </div>
+              <div>
+                <h1 class="text-base font-extrabold text-slate-900 leading-none">Fuel Valencia</h1>
+                <span class="text-[10px] text-slate-400">Precios en tiempo real</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <button
+                @click="locateUser()"
+                :disabled="userLocation.locating"
+                :class="userLocation.active ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-700'"
+                class="px-2.5 py-1.5 border rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5"
+                title="Obtener GPS"
+              >
+                <svg x-show="!userLocation.locating" class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                </svg>
+                <svg x-show="userLocation.locating" class="animate-spin w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span x-text="userLocation.active ? 'Cerca' : 'GPS'"></span>
+              </button>
+
+              <button
+                @click="togglePickLocationOnMap()"
+                :class="isPickingLocationOnMap ? 'bg-amber-500 text-white ring-2 ring-amber-300' : 'bg-white border-slate-200 text-slate-700'"
+                class="px-2 py-1.5 border rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1"
+                title="Tocar punto en el mapa"
+              >
+                <span>🎯</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Mobile Fuel Selector (Horizontal Swipable Pills) -->
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <template x-for="(fuel, key) in fuelTypes" :key="key">
+              <button
+                @click="setFuel(key)"
+                :class="selectedFuel === key 
+                  ? 'bg-slate-900 text-white font-bold shadow-xs' 
+                  : 'bg-slate-100 text-slate-700 font-medium'"
+                class="px-3 py-1.5 rounded-full text-xs shrink-0 flex items-center gap-1.5 transition active:scale-95"
+              >
+                <span class="w-2 h-2 rounded-full shrink-0" :style="`background-color: ${fuel.color}`"></span>
+                <span x-text="fuel.label"></span>
+              </button>
+            </template>
+          </div>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- Provincial Macro Summary Banner (Horizontal Scroll) -->
+    <div class="bg-white border-b border-slate-200 px-3 py-2 z-20 shrink-0 text-xs shadow-xs">
+      <div class="max-w-7xl mx-auto flex items-center gap-4 overflow-x-auto no-scrollbar">
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-slate-400 font-medium">Valencia:</span>
+          <span class="font-bold text-slate-800" x-text="`${provincialStats.count || 0} gasolineras`"></span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-slate-400 font-medium">Media:</span>
+          <span class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded" x-text="formatCurrency(provincialStats.avg)"></span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-slate-400 font-medium">Mínimo:</span>
+          <span class="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded" x-text="formatCurrency(provincialStats.min)"></span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-slate-400 font-medium">Máximo:</span>
+          <span class="font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded" x-text="formatCurrency(provincialStats.max)"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Workspace (Sidebar on desktop / Tabbed view on mobile) -->
+    <main class="flex-1 flex overflow-hidden relative">
+      
+      <!-- Left Sidebar / Mobile List & Recommendations Tabs -->
+      <aside
+        :class="{
+          'hidden': (mobileTab === 'map') && window.innerWidth < 768,
+          'w-full md:w-[420px] lg:w-[460px]': true
+        }"
+        class="bg-white border-r border-slate-200 flex flex-col h-full shrink-0 z-10 transition-all duration-200 shadow-sm"
+      >
+        <!-- Search & Filter Controls (Visible in desktop and mobile List tab) -->
+        <div x-show="mobileTab === 'list' || window.innerWidth >= 768" class="p-3 sm:p-4 border-b border-slate-100 bg-slate-50/60 space-y-2.5">
+          
+          <!-- Search input -->
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              x-model="searchQuery"
+              placeholder="Buscar marca, calle o municipio..."
+              class="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition"
+            />
+            <button
+              x-show="searchQuery"
+              @click="searchQuery = ''"
+              class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Municipality Select & Sort dropdown -->
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <select
+                x-model="selectedMunicipality"
+                class="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-emerald-500"
+              >
+                <option value="">Todos los municipios</option>
+                <template x-for="muni in municipalities" :key="muni">
+                  <option :value="muni" x-text="muni"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <select
+                x-model="sortBy"
+                class="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-emerald-500"
+              >
+                <option value="price">Ordenar: Más barata</option>
+                <option value="distance" :disabled="!userLocation.active">
+                  Ordenar: Distancia
+                </option>
+                <option value="savings" :disabled="recommendations.allClosest.length === 0">
+                  Ordenar: Mayor Ahorro
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Filter by visible map area toggle -->
+          <div class="flex items-center justify-between pt-1">
+            <label class="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-600 hover:text-slate-900">
+              <input
+                type="checkbox"
+                x-model="filterByVisibleArea"
+                class="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/20"
+              />
+              <span class="font-medium">Solo área visible en mapa</span>
+            </label>
+            <span
+              x-show="filterByVisibleArea"
+              class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800"
+              x-text="`${filteredStations.length} en pantalla`"
+            ></span>
+          </div>
+        </div>
+
+        <!-- Scrollable Body -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-100 pb-20 md:pb-0">
+
+          <!-- SMART ROUTING RECOMMENDATIONS PANEL (Desktop view, or Mobile 'recommendations' tab) -->
+          <div
+            x-show="(mobileTab === 'recommendations' || (window.innerWidth >= 768 && userLocation.active && recommendations.top3.length > 0))"
+            class="p-4 bg-gradient-to-b from-indigo-50/50 to-white border-b border-indigo-100"
+          >
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-900">
+                  Top 3 Recomendadas Inteligentes
+                </h3>
+              </div>
+              <span class="text-[11px] text-indigo-600 font-semibold">Precio vs Conducción</span>
+            </div>
+            
+            <p class="text-[11px] text-slate-500 mb-3">
+              Ajusta con el control deslizante cuánto prefieres priorizar la cercanía mínima o el precio más barato.
+            </p>
+
+            <!-- Call to action if GPS is not yet active in mobile recommendations tab -->
+            <div x-show="!userLocation.active" class="p-4 bg-indigo-50 rounded-xl text-center space-y-3 mb-3 border border-indigo-100">
+              <p class="text-xs text-indigo-900 font-medium">Activa tu ubicación para calcular las estaciones óptimas según tu preferencia entre distancia y precio.</p>
+              <div class="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  @click="locateUser()"
+                  class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5"
+                >
+                  📍 Activar GPS
+                </button>
+                <button
+                  @click="togglePickLocationOnMap()"
+                  class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-xs transition inline-flex items-center gap-1.5"
+                >
+                  🎯 Fijar en mapa
+                </button>
+                <button
+                  @click="locateUser(true)"
+                  class="px-3 py-2 bg-white border border-indigo-200 text-indigo-700 rounded-xl text-xs font-semibold hover:bg-indigo-50 transition"
+                >
+                  Valencia Centro
+                </button>
+              </div>
+            </div>
+
+            <!-- Optimization Preference Slider (Visible when location is active) -->
+            <div x-show="userLocation.active" class="mb-3 p-3 bg-white rounded-xl border border-indigo-100 shadow-xs space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                  ⚖️ Ajuste de Preferencia
+                </span>
+                <span
+                  class="text-[10px] sm:text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full"
+                  x-text="`${Math.round(preferenceAlpha * 100)}% ahorro · ${Math.round((1 - preferenceAlpha) * 100)}% cercanía`"
+                ></span>
+              </div>
+
+              <!-- Descriptive status text -->
+              <p class="text-[11px] text-slate-600 font-medium" x-text="getPreferenceLabel()"></p>
+
+              <!-- Range slider input -->
+              <div class="pt-1">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  x-model="preferenceAlpha"
+                  class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                />
+                <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1.5 font-semibold">
+                  <span
+                    class="flex items-center gap-0.5 text-slate-500 hover:text-indigo-600 cursor-pointer transition"
+                    @click="preferenceAlpha = 0"
+                    title="0: Priorizar gasolinera más cercana"
+                  >
+                    📍 Más cercana (0)
+                  </span>
+                  <span
+                    class="flex items-center gap-0.5 text-slate-500 hover:text-indigo-600 cursor-pointer transition"
+                    @click="preferenceAlpha = 0.5"
+                    title="0.5: Equilibrio cercanía y precio"
+                  >
+                    ⚖️ 50/50
+                  </span>
+                  <span
+                    class="flex items-center gap-0.5 text-slate-500 hover:text-indigo-600 cursor-pointer transition"
+                    @click="preferenceAlpha = 1"
+                    title="1: Priorizar precio más barato"
+                  >
+                    💰 Más barata (1)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recommendation Cards List -->
+            <div class="space-y-2.5">
+              <template x-for="(rec, index) in recommendations.top3" :key="rec.station.id">
+                <div
+                  @click="focusStation(rec.station)"
+                  class="p-3 rounded-xl border border-indigo-100 bg-white hover:border-indigo-300 hover:shadow-md transition-all duration-200 cursor-pointer relative overflow-hidden group"
+                >
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1.5 mb-1">
+                        <span
+                          :class="index === 0 ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-800'"
+                          class="text-[10px] font-bold px-1.5 py-0.5 rounded leading-none shrink-0"
+                          x-text="`#${index + 1} Opción`"
+                        ></span>
+                        <h4 class="font-bold text-xs text-slate-900 group-hover:text-indigo-600 truncate transition" x-text="rec.station.name"></h4>
+                      </div>
+                      <p class="text-[11px] text-slate-500 truncate" x-text="`${rec.station.address}, ${rec.station.municipality}`"></p>
+                    </div>
+
+                    <div class="text-right shrink-0">
+                      <div class="text-sm font-extrabold text-indigo-600" x-text="`${rec.price.toFixed(3)} €/L`"></div>
+                      <div class="text-[10px] text-emerald-600 font-semibold" x-text="`Ahorro neto: ~${rec.netScore > 0 ? '+' : ''}${rec.netScore}€`"></div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="flex items-center gap-1">
+                        🚗 <strong class="text-slate-700" x-text="`${rec.drivingDistKm} km`"></strong> (~<span x-text="rec.drivingTimeMin"></span> min)
+                      </span>
+                      <template x-if="rec.extraDistKm && rec.extraDistKm > 0">
+                        <span class="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-medium" x-text="`+${rec.extraDistKm} km extra`"></span>
+                      </template>
+                      <template x-if="rec.extraDistKm === 0">
+                        <span class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">Más cercana</span>
+                      </template>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button
+                        @click.stop="traceRoute(rec.station)"
+                        class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                      >
+                        Trazar ruta 📍
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- STATION LIST (Shown in Desktop and Mobile List tab) -->
+          <div x-show="mobileTab === 'list' || window.innerWidth >= 768" class="p-3">
+            <div class="flex items-center justify-between px-1 py-1.5 text-xs text-slate-400 font-semibold">
+              <span x-text="`Mostrando ${filteredStations.length} estaciones`"></span>
+              <span x-text="fuelTypes[selectedFuel].label"></span>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div x-show="loading" class="py-12 text-center text-slate-400 space-y-3">
+              <div class="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p class="text-xs">Cargando estaciones de servicio...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div x-show="!loading && filteredStations.length === 0" class="py-12 text-center text-slate-400 space-y-2">
+              <p class="text-sm font-semibold text-slate-600">No se encontraron gasolineras</p>
+              <p class="text-xs">Prueba a cambiar el filtro de búsqueda o el municipio seleccionado.</p>
+            </div>
+
+            <!-- Station Items List -->
+            <div class="space-y-2 mt-1">
+              <template x-for="st in filteredStations.slice(0, 100)" :key="st.id">
+                <div
+                  @click="focusStation(st)"
+                  class="p-3 bg-white border border-slate-200/70 rounded-xl hover:border-emerald-400 hover:shadow-xs transition-all duration-150 cursor-pointer group active:bg-slate-50"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-0.5">
+                        <h4 class="font-bold text-xs text-slate-900 group-hover:text-emerald-700 truncate transition" x-text="st.name"></h4>
+                      </div>
+                      <p class="text-[11px] text-slate-500 truncate" x-text="`${st.address} · ${st.municipality}`"></p>
+                    </div>
+
+                    <!-- Price Badge -->
+                    <div class="text-right shrink-0">
+                      <span
+                        :class="getPrice(st) <= (provincialStats.p25 || 0) ? 'text-emerald-700 bg-emerald-50' : 'text-slate-800 bg-slate-100'"
+                        class="text-xs font-extrabold px-2 py-0.5 rounded-md inline-block"
+                        x-text="formatCurrency(getPrice(st))"
+                      ></span>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-400">
+                    <div class="flex items-center gap-2">
+                      <template x-if="st.userDistanceKm != null">
+                        <span class="text-slate-600 font-medium" x-text="`📍 ${st.userDistanceKm.toFixed(1)} km`"></span>
+                      </template>
+                      <template x-if="getStats(st).trend != null">
+                        <span
+                          :class="getStats(st).trend < 0 ? 'text-emerald-600' : getStats(st).trend > 0 ? 'text-rose-500' : 'text-slate-500'"
+                          class="font-semibold"
+                          x-text="`${getStats(st).trend < 0 ? '↓' : getStats(st).trend > 0 ? '↑' : '='} ${Math.abs(getStats(st).trend).toFixed(3)}€`"
+                        ></span>
+                      </template>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      <button
+                        @click.stop="openStationModal(st)"
+                        class="text-xs font-semibold text-emerald-600 hover:text-emerald-800 transition py-0.5 px-1.5"
+                      >
+                        Historial 7d 📊
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+            
+            <div x-show="filteredStations.length > 100" class="p-3 text-center text-xs text-slate-400">
+              Mostrando las 100 mejores estaciones coincidentes.
+            </div>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- Right Area: Leaflet Map Container -->
+      <section
+        :class="{
+          'hidden': (mobileTab !== 'map') && window.innerWidth < 768,
+          'flex-1': true
+        }"
+        class="h-full relative overflow-hidden bg-slate-100"
+      >
+        <!-- The Leaflet map element -->
+        <div id="map" class="w-full h-full"></div>
+
+        <!-- Location Picker Mode Helper Banner -->
+        <div
+          x-show="isPickingLocationOnMap"
+          x-transition
+          class="absolute top-3 left-3 right-3 md:left-1/2 md:-translate-x-1/2 md:max-w-md bg-amber-500 text-white px-4 py-2.5 rounded-2xl shadow-float z-30 flex items-center justify-between gap-3 animate-pulse"
+        >
+          <div class="flex items-center gap-2 text-xs font-bold">
+            <span class="text-base">🎯</span>
+            <span>Toca el mapa para fijar tu ubicación</span>
+          </div>
+          <button
+            @click="isPickingLocationOnMap = false"
+            class="px-2.5 py-1 bg-black/20 hover:bg-black/30 rounded-lg text-xs font-semibold shrink-0 transition"
+          >
+            Cancelar
+          </button>
+        </div>
+
+        <!-- Floating Active Route Bar (when a route is traced) -->
+        <div
+          x-show="activeRouteInfo"
+          x-transition
+          class="absolute top-3 left-3 right-3 md:left-6 md:right-auto md:max-w-md bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-float border border-indigo-100 z-20 flex items-center justify-between gap-3"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+              🚗
+            </div>
+            <div class="min-w-0">
+              <h4 class="font-bold text-xs text-slate-900 truncate" x-text="activeRouteInfo?.station?.name"></h4>
+              <p class="text-[11px] text-slate-500 truncate" x-text="`${activeRouteInfo?.distanceKm} km · aprox. ${activeRouteInfo?.durationMin} min`"></p>
+            </div>
+          </div>
+          <button
+            @click="clearRoute()"
+            class="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition shrink-0"
+          >
+            Quitar
+          </button>
+        </div>
+
+        <!-- Floating Map Controls & Legend (Positioned above mobile bottom bar) -->
+        <div class="absolute bottom-20 md:bottom-6 right-3 md:right-6 z-20 flex flex-col items-end gap-2 pointer-events-none">
+          
+          <button
+            @click="resetMapZoom()"
+            class="pointer-events-auto bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-card border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-white hover:text-slate-900 transition flex items-center gap-1.5 active:scale-95"
+            title="Centrar vista en la provincia de Valencia"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+            <span class="hidden sm:inline">Centrar</span> Valencia
+          </button>
+
+          <!-- Legend Card -->
+          <div class="pointer-events-auto bg-white/95 backdrop-blur-sm p-2 rounded-xl shadow-card border border-slate-200 text-[10px] space-y-1">
+            <div class="font-bold text-slate-700">Precios:</div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <span class="text-slate-600">Barata (&lt;25%)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+              <span class="text-slate-600">Media</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+              <span class="text-slate-600">Cara (&gt;75%)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+              <span class="text-slate-600 font-bold">★ Top</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MOBILE FLOATING STATION PREVIEW CARD (When clicking a marker on mobile map) -->
+        <div
+          x-show="mobileTab === 'map' && activeMobileStation"
+          x-transition:enter="transition ease-out duration-200"
+          x-transition:enter-start="opacity-0 translate-y-6"
+          x-transition:enter-end="opacity-100 translate-y-0"
+          x-transition:leave="transition ease-in duration-150"
+          x-transition:leave-start="opacity-100 translate-y-0"
+          x-transition:leave-end="opacity-0 translate-y-6"
+          class="md:hidden absolute bottom-20 left-3 right-3 z-30 bg-white/98 backdrop-blur-md rounded-2xl shadow-float border border-slate-200 p-3.5"
+        >
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 mb-0.5">
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700" x-text="activeMobileStation?.locality || activeMobileStation?.municipality"></span>
+                <h4 class="font-bold text-xs text-slate-900 truncate" x-text="activeMobileStation?.name"></h4>
+              </div>
+              <p class="text-[11px] text-slate-500 truncate" x-text="`${activeMobileStation?.address}, ${activeMobileStation?.municipality}`"></p>
+            </div>
+
+            <div class="text-right shrink-0">
+              <span
+                class="text-sm font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md inline-block"
+                x-text="formatCurrency(getPrice(activeMobileStation))"
+              ></span>
+              <button
+                @click="closeMobileStation()"
+                class="block ml-auto mt-1 text-slate-400 hover:text-slate-600 p-0.5 text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- Action buttons row in mobile bottom card -->
+          <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+            <button
+              @click="openStationModal(activeMobileStation)"
+              class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl transition text-center"
+            >
+              Historial 7d 📊
+            </button>
+            <button
+              @click="traceRoute(activeMobileStation)"
+              class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold rounded-xl shadow-xs transition text-center"
+            >
+              Trazar ruta 🚗
+            </button>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- Bottom Mobile Navigation Bar (Native App Style) -->
+    <nav class="md:hidden bg-white border-t border-slate-200 z-40 shrink-0 px-2 py-1 shadow-lg flex items-center justify-around safe-area-bottom">
+      <button
+        @click="setMobileTab('map')"
+        :class="mobileTab === 'map' ? 'text-emerald-600 font-bold' : 'text-slate-500 font-medium'"
+        class="flex flex-col items-center justify-center py-1.5 px-3 text-[11px] transition active:scale-95"
+      >
+        <svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+        </svg>
+        <span>Mapa</span>
+      </button>
+
+      <button
+        @click="setMobileTab('list')"
+        :class="mobileTab === 'list' ? 'text-emerald-600 font-bold' : 'text-slate-500 font-medium'"
+        class="flex flex-col items-center justify-center py-1.5 px-3 text-[11px] transition active:scale-95 relative"
+      >
+        <svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+        </svg>
+        <span>Lista (<span x-text="filteredStations.length"></span>)</span>
+      </button>
+
+      <button
+        @click="setMobileTab('recommendations')"
+        :class="mobileTab === 'recommendations' ? 'text-indigo-600 font-bold' : 'text-slate-500 font-medium'"
+        class="flex flex-col items-center justify-center py-1.5 px-3 text-[11px] transition active:scale-95 relative"
+      >
+        <svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        <span>Top Ahorro</span>
+        <span x-show="userLocation.active && recommendations.top3.length > 0" class="absolute top-1 right-3 w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+      </button>
+
+      <button
+        @click="locateUser()"
+        :class="userLocation.active ? 'text-indigo-600 font-bold' : 'text-slate-500 font-medium'"
+        class="flex flex-col items-center justify-center py-1.5 px-3 text-[11px] transition active:scale-95"
+      >
+        <svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span x-text="userLocation.active ? 'Ubicado' : 'Ubicarme'"></span>
+      </button>
+    </nav>
+
+    <!-- STATION DETAIL MODAL / MOBILE BOTTOM SHEET -->
+    <div
+      x-show="selectedStation"
+      x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 translate-y-6 sm:translate-y-0"
+      x-transition:enter-end="opacity-100 translate-y-0"
+      x-transition:leave="transition ease-in duration-150"
+      x-transition:leave-start="opacity-100 translate-y-0"
+      x-transition:leave-end="opacity-0 translate-y-6 sm:translate-y-0"
+      class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
+      @keydown.escape.window="closeStationModal()"
+    >
+      <div
+        @click.away="closeStationModal()"
+        class="bg-white rounded-t-3xl sm:rounded-2xl shadow-float max-w-xl w-full max-h-[90vh] flex flex-col p-5 sm:p-6 border border-slate-200 relative overflow-hidden"
+      >
+        <!-- Mobile Handle Drag Indicator -->
+        <div class="sm:hidden w-12 h-1 bg-slate-200 rounded-full mx-auto mb-3 shrink-0"></div>
+
+        <!-- Close Button -->
+        <button
+          @click="closeStationModal()"
+          class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition z-10"
+        >
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <!-- Scrollable Modal Content -->
+        <div class="overflow-y-auto custom-scrollbar flex-1 pr-1">
+          <!-- Station Header -->
+          <div class="pr-8 mb-4">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800" x-text="selectedStation?.locality || selectedStation?.municipality"></span>
+              <span class="text-xs text-slate-400" x-text="`ID: ${selectedStation?.id}`"></span>
+            </div>
+            <h3 class="text-lg sm:text-xl font-extrabold text-slate-900" x-text="selectedStation?.name"></h3>
+            <p class="text-xs text-slate-500 mt-0.5" x-text="`${selectedStation?.address}, ${selectedStation?.postal_code} ${selectedStation?.municipality}`"></p>
+            <template x-if="selectedStation?.schedule">
+              <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                🕒 Horario: <span x-text="selectedStation.schedule" class="text-slate-600 font-medium"></span>
+              </p>
+            </template>
+          </div>
+
+          <!-- Current Prices Grid for All 4 Fuels -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+            <div class="p-2.5 rounded-xl border border-slate-100 bg-slate-50 text-center">
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">Gasolina 95</span>
+              <span class="text-sm font-extrabold text-slate-900" x-text="selectedStation?.data?.slice(-1)[0]?.price_gasoline_95 ? `${selectedStation.data.slice(-1)[0].price_gasoline_95.toFixed(3)} €` : '—'"></span>
+            </div>
+            <div class="p-2.5 rounded-xl border border-slate-100 bg-slate-50 text-center">
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">Diésel A</span>
+              <span class="text-sm font-extrabold text-slate-900" x-text="selectedStation?.data?.slice(-1)[0]?.price_diesel_a ? `${selectedStation.data.slice(-1)[0].price_diesel_a.toFixed(3)} €` : '—'"></span>
+            </div>
+            <div class="p-2.5 rounded-xl border border-slate-100 bg-slate-50 text-center">
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">Gasolina 98</span>
+              <span class="text-sm font-extrabold text-slate-900" x-text="selectedStation?.data?.slice(-1)[0]?.price_gasoline_98 ? `${selectedStation.data.slice(-1)[0].price_gasoline_98.toFixed(3)} €` : '—'"></span>
+            </div>
+            <div class="p-2.5 rounded-xl border border-slate-100 bg-slate-50 text-center">
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">Diésel +</span>
+              <span class="text-sm font-extrabold text-slate-900" x-text="selectedStation?.data?.slice(-1)[0]?.price_diesel_premium ? `${selectedStation.data.slice(-1)[0].price_diesel_premium.toFixed(3)} €` : '—'"></span>
+            </div>
+          </div>
+
+          <!-- D3.JS HISTORICAL PRICE CHART SECTION -->
+          <div class="border border-slate-100 rounded-2xl p-3.5 sm:p-4 bg-slate-50/50 mb-4">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold text-slate-800">Evolución 7 días:</span>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded-full" :style="`background-color: ${fuelTypes[selectedFuel].color}20; color: ${fuelTypes[selectedFuel].color}`" x-text="fuelTypes[selectedFuel].label"></span>
+              </div>
+              <!-- Trend badge -->
+              <template x-if="selectedStation && getStats(selectedStation).trend != null">
+                <span
+                  :class="getStats(selectedStation).trend < 0 ? 'bg-emerald-100 text-emerald-800' : getStats(selectedStation).trend > 0 ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-700'"
+                  class="text-[11px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1"
+                >
+                  <span x-text="getStats(selectedStation).trend < 0 ? '↓ Bajada' : getStats(selectedStation).trend > 0 ? '↑ Subida' : 'Estable'"></span>
+                  <span x-text="`(${getStats(selectedStation).trendPercent > 0 ? '+' : ''}${getStats(selectedStation).trendPercent}%)`"></span>
+                </span>
+              </template>
+            </div>
+
+            <!-- D3 Container -->
+            <div id="station-history-chart" class="min-h-[190px] flex items-center justify-center"></div>
+          </div>
+        </div>
+
+        <!-- Actions Row (Sticky at bottom of modal) -->
+        <div class="flex items-center justify-between gap-2 pt-3 border-t border-slate-100 shrink-0">
+          <a
+            :href="`https://www.google.com/maps/search/?api=1&query=${selectedStation?.latitude},${selectedStation?.longitude}`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition inline-flex items-center gap-1"
+          >
+            Google Maps ↗
+          </a>
+
+          <div class="flex items-center gap-2">
+            <button
+              @click="traceRoute(selectedStation); closeStationModal()"
+              class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold rounded-xl shadow-xs transition inline-flex items-center gap-1.5"
+            >
+              🚗 Trazar ruta
+            </button>
+            <button
+              @click="closeStationModal()"
+              class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div
+      x-show="toast.show"
+      x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 translate-y-2"
+      x-transition:enter-end="opacity-100 translate-y-0"
+      x-transition:leave="transition ease-in duration-150"
+      x-transition:leave-start="opacity-100 translate-y-0"
+      x-transition:leave-end="opacity-0 translate-y-2"
+      class="fixed bottom-20 md:bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl shadow-float text-xs font-medium flex items-center gap-2 border"
+      :class="{
+        'bg-slate-900 text-white border-slate-800': toast.type === 'info',
+        'bg-emerald-600 text-white border-emerald-500': toast.type === 'success',
+        'bg-amber-600 text-white border-amber-500': toast.type === 'warning'
+      }"
+    >
+      <span x-text="toast.message"></span>
+    </div>
+
+    <!-- Vite Main Script -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

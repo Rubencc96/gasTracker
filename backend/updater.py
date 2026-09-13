@@ -192,29 +192,47 @@ def compute_station_stats(data_entries):
     return stats
 
 
+def parse_date_str(date_val):
+    """
+    Parses a date string supporting ISO (YYYY-MM-DD) and common formats (DD/MM/YYYY, DD-MM-YYYY).
+    Returns a datetime.date object or None.
+    """
+    if not date_val:
+        return None
+    if isinstance(date_val, datetime):
+        return date_val.date()
+    val_str = str(date_val).strip()
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(val_str, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
 def update_stations_dataset(existing_stations_map, clean_scraped_stations, date_str, retention_days=RETENTION_DAYS):
     """
     Merges newly scraped station data with existing rolling historical data,
-    pruning observations older than retention_days (calendar difference),
+    pruning observations strictly older than retention_days (calendar difference),
     and updating station-level statistics.
     """
-    try:
-        ref_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-    except ValueError:
-        ref_date = datetime.now(timezone.utc).date()
+    ref_date = parse_date_str(date_str) or datetime.now(timezone.utc).date()
+    normalized_today_str = ref_date.strftime("%Y-%m-%d")
 
-    scraped_map = {s["id"]: s for s in clean_scraped_stations}
-    all_station_ids = set(existing_stations_map.keys()).union(scraped_map.keys())
+    # Normalize station ID keys to string for robust matching
+    existing_map = {str(k): v for k, v in existing_stations_map.items()}
+    scraped_map = {str(s["id"]): s for s in clean_scraped_stations}
+    all_station_ids = set(existing_map.keys()).union(scraped_map.keys())
 
     updated_stations = []
 
     for s_id in all_station_ids:
         scraped_st = scraped_map.get(s_id)
-        existing_st = existing_stations_map.get(s_id)
+        existing_st = existing_map.get(s_id)
 
         source = scraped_st or existing_st
         station_record = {
-            "id": source["id"],
+            "id": str(source["id"]),
             "name": source["name"],
             "address": source["address"],
             "locality": source["locality"],
@@ -225,41 +243,37 @@ def update_stations_dataset(existing_stations_map, clean_scraped_stations, date_
             "schedule": source["schedule"],
         }
 
-        # Retrieve existing historical observations
-        data_entries = [dict(d) for d in existing_st.get("data", [])] if existing_st else []
+        # Retrieve and index existing historical observations by normalized date
+        entries_by_date = {}
+        for entry in (existing_st.get("data", []) if existing_st else []):
+            e_date = parse_date_str(entry.get("date"))
+            if not e_date:
+                continue
+            diff_days = (ref_date - e_date).days
+            # Prune only observations older than retention_days (diff_days > retention_days)
+            # Retain observations where diff_days <= retention_days
+            if diff_days <= retention_days:
+                date_key = e_date.strftime("%Y-%m-%d")
+                entries_by_date[date_key] = {
+                    "date": date_key,
+                    "price_gasoline_95": parse_float(entry.get("price_gasoline_95")),
+                    "price_diesel_a": parse_float(entry.get("price_diesel_a")),
+                    "price_gasoline_98": parse_float(entry.get("price_gasoline_98")),
+                    "price_diesel_premium": parse_float(entry.get("price_diesel_premium")),
+                }
 
-        # If station was observed today, update or append today's price entry
+        # If station was observed today, update or set today's entry
         if scraped_st:
-            today_entry = {
-                "date": date_str,
+            entries_by_date[normalized_today_str] = {
+                "date": normalized_today_str,
                 "price_gasoline_95": scraped_st["price_gasoline_95"],
                 "price_diesel_a": scraped_st["price_diesel_a"],
                 "price_gasoline_98": scraped_st["price_gasoline_98"],
                 "price_diesel_premium": scraped_st["price_diesel_premium"],
             }
-            existing_idx = next((i for i, d in enumerate(data_entries) if d.get("date") == date_str), None)
-            if existing_idx is not None:
-                data_entries[existing_idx] = today_entry
-            else:
-                data_entries.append(today_entry)
 
         # Sort entries chronologically
-        data_entries.sort(key=lambda d: d.get("date", ""))
-
-        # Prune entries older than retention_days (calendar difference)
-        valid_entries = []
-        for entry in data_entries:
-            try:
-                entry_date = datetime.strptime(entry.get("date", ""), "%Y-%m-%d").date()
-                diff_days = (ref_date - entry_date).days
-                if 0 <= diff_days < retention_days:
-                    valid_entries.append(entry)
-            except (ValueError, TypeError):
-                continue
-
-        # Keep at most retention_days records
-        if len(valid_entries) > retention_days:
-            valid_entries = valid_entries[-retention_days:]
+        valid_entries = [entries_by_date[d] for d in sorted(entries_by_date.keys())]
 
         # If no entries remain within the window, drop station
         if not valid_entries:
@@ -320,7 +334,7 @@ def main():
                 if isinstance(loaded_list, list):
                     for st in loaded_list:
                         if isinstance(st, dict) and "id" in st:
-                            existing_stations_map[st["id"]] = st
+                            existing_stations_map[str(st["id"])] = st
             print(f"Loaded {len(existing_stations_map)} existing station records from stations.json")
         except Exception as e:
             print(f"Warning: Could not read existing stations.json: {e}")
