@@ -13,3 +13,7 @@ notes.md
 node_modules/
 frontend/dist/
 .vite/
+.env
+.env.*
+!.env.example
+

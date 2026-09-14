@@ -158,8 +158,13 @@ export function gasApp() {
       // Add zoom control in top-right
       L.control.zoom({ position: 'topright' }).addTo(this.map);
 
-      // CartoDB Positron light layer
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      // CartoDB Positron light layer (uses API key in production to remove watermark without failing in local dev)
+      const cartoKey = import.meta.env.PROD ? import.meta.env.VITE_CARTO_API_KEY : null;
+      const tileUrl = cartoKey
+        ? `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=${cartoKey}`
+        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+      L.tileLayer(tileUrl, {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19,

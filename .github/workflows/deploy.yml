@@ -37,6 +37,8 @@ jobs:
           npm ci
 
       - name: Build frontend with Vite
+        env:
+          VITE_CARTO_API_KEY: ${{ secrets.VITE_CARTO_API_KEY }}
         run: |
           cd frontend
           npm run build
