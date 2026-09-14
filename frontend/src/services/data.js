@@ -1,7 +1,16 @@
 /**
- * Data Service for Fuel Valencia Tracker
+ * Data Service for gasTracker
  * Handles station fetching, fuel price extraction, and provincial statistics computation.
  */
+
+export const PROVINCES = {
+  '46': {
+    id: '46',
+    name: 'Valencia',
+    center: [39.4699, -0.3763],
+    zoom: 10,
+  },
+};
 
 export const FUEL_TYPES = {
   gasoline_95: {
@@ -85,7 +94,7 @@ export function getStationStats(station, fuelId) {
 /**
  * Compute aggregate statistics for the entire province for a given fuel type
  */
-export function computeProvincialStats(stations, fuelId) {
+export function computeProvincialStats(stations, fuelId, provinceId = null) {
   const prices = [];
   let minStation = null;
   let maxStation = null;
@@ -94,7 +103,15 @@ export function computeProvincialStats(stations, fuelId) {
   let sumTrend = 0;
   let countTrend = 0;
 
-  for (const station of stations) {
+  const targetStations = provinceId
+    ? stations.filter(st => {
+        if (st.province_id) return st.province_id === provinceId;
+        if (st.postal_code) return st.postal_code.startsWith(provinceId);
+        return true;
+      })
+    : stations;
+
+  for (const station of targetStations) {
     const price = getLatestPrice(station, fuelId);
     if (price !== null) {
       prices.push(price);
