@@ -2,6 +2,8 @@
 
 Un rastreador de precios de combustible (gasolina y diésel) de código abierto para todas las estaciones de servicio de la provincia de Valencia (España). Utiliza una arquitectura **Git-Scraping** con backend en Python, frontend modular y ligero (Vite, Alpine.js, Leaflet, D3.js, Tailwind CSS), y despliegue continuo en **GitHub Pages**.
 
+Este proyecto ha sido un intento de probar el nuevo mundo del *vibe coding* con una aplicación que pueda resultar útil.
+
 ---
 
 ## 🌟 Características Principales
