@@ -160,6 +160,47 @@
   border-top-color: #7c3aed;
 }
 
+/* Trend mode marker color tiers */
+.tier-trend-drop-strong {
+  background: linear-gradient(135deg, #047857, #10b981);
+  border: 1.5px solid #ecfdf5;
+}
+.tier-trend-drop-strong::after {
+  border-top-color: #10b981;
+}
+
+.tier-trend-drop-soft {
+  background: linear-gradient(135deg, #15803d, #4ade80);
+  border: 1.5px solid #f0fdf4;
+}
+.tier-trend-drop-soft::after {
+  border-top-color: #4ade80;
+}
+
+.tier-trend-stable {
+  background: linear-gradient(135deg, #475569, #94a3b8);
+  border: 1.5px solid #f8fafc;
+}
+.tier-trend-stable::after {
+  border-top-color: #94a3b8;
+}
+
+.tier-trend-rise-soft {
+  background: linear-gradient(135deg, #ea580c, #fb923c);
+  border: 1.5px solid #fff7ed;
+}
+.tier-trend-rise-soft::after {
+  border-top-color: #fb923c;
+}
+
+.tier-trend-rise-strong {
+  background: linear-gradient(135deg, #b91c1c, #f87171);
+  border: 1.5px solid #fef2f2;
+}
+.tier-trend-rise-strong::after {
+  border-top-color: #f87171;
+}
+
 @keyframes pulse-ring {
   0% {
     box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.6);

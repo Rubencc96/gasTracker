@@ -31,13 +31,14 @@ export function gasApp() {
     stations: [],
     selectedProvince: '46',
     provinces: PROVINCES,
+    displayMode: 'price', // 'price' | 'trend'
     selectedFuel: 'gasoline_95',
     searchQuery: '',
     selectedMunicipality: '',
     filterByVisibleArea: false,
     viewportUpdateCounter: 0,
     municipalities: [],
-    sortBy: 'price', // 'price' | 'distance' | 'savings'
+    sortBy: 'price', // 'price' | 'trend_drop' | 'trend_rise' | 'distance' | 'savings'
     viewMode: 'both', // 'both' | 'map' | 'list'
     mobileTab: 'map', // 'map' | 'list' | 'recommendations'
     activeMobileStation: null,
@@ -147,6 +148,10 @@ export function gasApp() {
         }
       });
 
+      this.$watch('displayMode', () => {
+        this.renderMarkers();
+      });
+
       this.$watch('sortBy', () => {
         this.renderMarkers();
       });
@@ -165,6 +170,20 @@ export function gasApp() {
           this.map.invalidateSize();
         }
       });
+    },
+
+    /**
+     * Switch between 'price' and 'trend' visualization modes
+     */
+    setDisplayMode(mode) {
+      if (this.displayMode === mode) return;
+      this.displayMode = mode;
+      if (mode === 'trend' && this.sortBy === 'price') {
+        this.sortBy = 'trend_drop';
+      } else if (mode === 'price' && (this.sortBy === 'trend_drop' || this.sortBy === 'trend_rise')) {
+        this.sortBy = 'price';
+      }
+      this.renderMarkers();
     },
 
     /**
@@ -197,7 +216,7 @@ export function gasApp() {
         maxZoom: 19,
       }).addTo(this.map);
 
-      // Initialize Cluster Group with custom price-aware badge
+      // Initialize Cluster Group with custom price/trend-aware badge
       this.clusterGroup = L.markerClusterGroup({
         showCoverageOnHover: false,
         maxClusterRadius: 40, // Clustered tightly so nearby stations merge cleanly
@@ -205,12 +224,48 @@ export function gasApp() {
         zoomToBoundsOnClick: true,
         iconCreateFunction: (cluster) => {
           const markers = cluster.getAllChildMarkers();
+          const count = cluster.getChildCount();
+
+          if (this.displayMode === 'trend') {
+            const trends = markers
+              .map(m => m.__stationTrend)
+              .filter(t => typeof t === 'number');
+
+            let avgTrend = trends.length > 0 ? trends.reduce((acc, t) => acc + t, 0) / trends.length : 0;
+            let tierClass = 'tier-trend-stable';
+
+            if (avgTrend <= -0.015) {
+              tierClass = 'tier-trend-drop-strong';
+            } else if (avgTrend < -0.002) {
+              tierClass = 'tier-trend-drop-soft';
+            } else if (avgTrend >= 0.015) {
+              tierClass = 'tier-trend-rise-strong';
+            } else if (avgTrend > 0.002) {
+              tierClass = 'tier-trend-rise-soft';
+            }
+
+            const sign = avgTrend > 0.002 ? '↑ +' : avgTrend < -0.002 ? '↓ ' : '= ';
+            const trendLabel = trends.length > 0 ? `${sign}${Math.abs(avgTrend).toFixed(3)}€` : `${count} gasolineras`;
+
+            return L.divIcon({
+              html: `
+                <div class="price-cluster-badge ${tierClass}">
+                  <span>${trendLabel}</span>
+                  <span class="cluster-count-pill">${count}</span>
+                </div>
+              `,
+              className: 'custom-cluster-marker-wrapper',
+              iconSize: [110, 28],
+              iconAnchor: [55, 14],
+            });
+          }
+
+          // Price mode
           const prices = markers
             .map(m => m.__stationPrice)
             .filter(p => typeof p === 'number');
 
           const minPrice = prices.length > 0 ? Math.min(...prices) : null;
-          const count = cluster.getChildCount();
 
           let tierClass = 'tier-mid';
           if (minPrice !== null && this.provincialStats.p25 && minPrice <= this.provincialStats.p25) {
@@ -369,6 +424,18 @@ export function gasApp() {
       // Sorting
       if (this.sortBy === 'price') {
         list.sort((a, b) => getLatestPrice(a, fuelId) - getLatestPrice(b, fuelId));
+      } else if (this.sortBy === 'trend_drop') {
+        list.sort((a, b) => {
+          const trA = getStationStats(a, fuelId).trend ?? 999;
+          const trB = getStationStats(b, fuelId).trend ?? 999;
+          return trA - trB; // smallest trend first (biggest drop, e.g. -0.050 before -0.010)
+        });
+      } else if (this.sortBy === 'trend_rise') {
+        list.sort((a, b) => {
+          const trA = getStationStats(a, fuelId).trend ?? -999;
+          const trB = getStationStats(b, fuelId).trend ?? -999;
+          return trB - trA; // largest trend first (biggest increase, e.g. +0.050 before +0.010)
+        });
       } else if (this.sortBy === 'distance' && this.userLocation.active) {
         list.sort((a, b) => (a.userDistanceKm || 0) - (b.userDistanceKm || 0));
       } else if (this.sortBy === 'savings' && this.recommendations.allClosest.length > 0) {
@@ -401,38 +468,70 @@ export function gasApp() {
         const price = getLatestPrice(st, fuelId);
         if (price === null) continue;
 
-        let tierClass = 'tier-mid';
+        const stStats = getStationStats(st, fuelId);
         const isRecommended = recommendedIds.has(st.id);
 
-        if (isRecommended) {
-          tierClass = 'tier-recommended';
-        } else if (stats.min && price <= stats.min + 0.005) {
-          tierClass = 'tier-cheapest';
-        } else if (stats.p25 && price <= stats.p25) {
-          tierClass = 'tier-low';
-        } else if (stats.p75 && price >= stats.p75) {
-          tierClass = 'tier-high';
+        let tierClass = 'tier-mid';
+        let badgeLabel = '';
+
+        if (this.displayMode === 'trend') {
+          const trend = stStats.trend;
+          if (trend === null) {
+            tierClass = 'tier-trend-stable';
+            badgeLabel = '—';
+          } else if (trend <= -0.015) {
+            tierClass = 'tier-trend-drop-strong';
+            badgeLabel = `↓ ${Math.abs(trend).toFixed(3)}€`;
+          } else if (trend < -0.002) {
+            tierClass = 'tier-trend-drop-soft';
+            badgeLabel = `↓ ${Math.abs(trend).toFixed(3)}€`;
+          } else if (trend >= 0.015) {
+            tierClass = 'tier-trend-rise-strong';
+            badgeLabel = `↑ +${trend.toFixed(3)}€`;
+          } else if (trend > 0.002) {
+            tierClass = 'tier-trend-rise-soft';
+            badgeLabel = `↑ +${trend.toFixed(3)}€`;
+          } else {
+            tierClass = 'tier-trend-stable';
+            badgeLabel = `= 0.000€`;
+          }
+        } else {
+          // Price mode
+          if (isRecommended) {
+            tierClass = 'tier-recommended';
+          } else if (stats.min && price <= stats.min + 0.005) {
+            tierClass = 'tier-cheapest';
+          } else if (stats.p25 && price <= stats.p25) {
+            tierClass = 'tier-low';
+          } else if (stats.p75 && price >= stats.p75) {
+            tierClass = 'tier-high';
+          }
+          badgeLabel = `${isRecommended ? '★ ' : ''}${price.toFixed(3)}€`;
         }
 
+        const titleText = this.displayMode === 'trend'
+          ? `${st.name}: ${stStats.trend != null ? (stStats.trend > 0 ? '+' : '') + stStats.trend.toFixed(3) + ' €/L (7d)' : 'Sin histórico 7d'}`
+          : `${st.name}: ${price.toFixed(3)} €/L`;
+
         const iconHtml = `
-          <div class="price-marker-pin ${tierClass}" title="${st.name}: ${price.toFixed(3)} €">
-            ${isRecommended ? '★ ' : ''}${price.toFixed(3)}€
+          <div class="price-marker-pin ${tierClass}" title="${titleText}">
+            ${badgeLabel}
           </div>
         `;
 
         const customIcon = L.divIcon({
           className: 'custom-price-marker-wrapper',
           html: iconHtml,
-          iconSize: [66, 24],
-          iconAnchor: [33, 28],
+          iconSize: [72, 24],
+          iconAnchor: [36, 28],
           popupAnchor: [0, -28],
         });
 
         const marker = L.marker([st.latitude, st.longitude], { icon: customIcon });
         marker.__stationPrice = price;
+        marker.__stationTrend = stStats.trend;
         marker.__stationId = st.id;
 
-        const stStats = getStationStats(st, fuelId);
         const trendBadge = stStats.trend !== null
           ? `<span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${
               stStats.trend < 0 ? 'bg-emerald-100 text-emerald-800' : stStats.trend > 0 ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'

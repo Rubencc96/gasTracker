@@ -102,6 +102,11 @@ export function computeProvincialStats(stations, fuelId, provinceId = null) {
   let maxPrice = -Infinity;
   let sumTrend = 0;
   let countTrend = 0;
+  let minTrend = Infinity;
+  let maxTrend = -Infinity;
+  let countDrops = 0;
+  let countRises = 0;
+  let countStable = 0;
 
   const targetStations = provinceId
     ? stations.filter(st => {
@@ -129,6 +134,12 @@ export function computeProvincialStats(stations, fuelId, provinceId = null) {
       if (typeof stats.trend === 'number') {
         sumTrend += stats.trend;
         countTrend++;
+        if (stats.trend < minTrend) minTrend = stats.trend;
+        if (stats.trend > maxTrend) maxTrend = stats.trend;
+
+        if (stats.trend < -0.002) countDrops++;
+        else if (stats.trend > 0.002) countRises++;
+        else countStable++;
       }
     }
   }
@@ -142,6 +153,11 @@ export function computeProvincialStats(stations, fuelId, provinceId = null) {
       minStation: null,
       maxStation: null,
       avgTrend: null,
+      minTrend: null,
+      maxTrend: null,
+      countDrops: 0,
+      countRises: 0,
+      countStable: 0,
       p25: null,
       p75: null,
     };
@@ -162,6 +178,11 @@ export function computeProvincialStats(stations, fuelId, provinceId = null) {
     minStation,
     maxStation,
     avgTrend,
+    minTrend: countTrend > 0 && minTrend !== Infinity ? Number(minTrend.toFixed(3)) : 0,
+    maxTrend: countTrend > 0 && maxTrend !== -Infinity ? Number(maxTrend.toFixed(3)) : 0,
+    countDrops,
+    countRises,
+    countStable,
     p25,
     p75,
   };
