@@ -1,6 +1,6 @@
-# Fuel Valencia Tracker ⛽️
+# gasTracker ⛽️
 
-Un rastreador de precios de combustible (gasolina y diésel) de código abierto para todas las estaciones de servicio de la provincia de Valencia (España). Utiliza una arquitectura **Git-Scraping** con backend en Python, frontend modular y ligero (Vite, Alpine.js, Leaflet, D3.js, Tailwind CSS), y despliegue continuo en **GitHub Pages**.
+Un rastreador de precios de combustible (gasolina y diésel) de código abierto para estaciones de servicio (inicialmente enfocado en la provincia de Valencia y preparado para ser extensible a múltiples provincias de España). Utiliza una arquitectura **Git-Scraping** con backend en Python, frontend modular y ligero (Vite, Alpine.js, Leaflet, D3.js, Tailwind CSS), y despliegue continuo en **GitHub Pages**.
 
 Este proyecto ha sido un intento de probar el nuevo mundo del *vibe coding* con una aplicación que pueda resultar útil.
 
@@ -23,10 +23,10 @@ Este proyecto ha sido un intento de probar el nuevo mundo del *vibe coding* con 
    - **Diseño Light Mode First**: Inspirado en interfaces limpias, modernas y adaptadas a móviles y escritorio.
    - **Mapa Interactivo**: Capa CartoDB Positron, marcadores HTML con badge de precio colorizado según cuartiles provinciales (`<25%` más barato, promedio, `>75%` más caro).
    - **Gráficos D3.js**: Evolución histórica de precios de los últimos 7 días con curvas suaves, gradientes y tooltips interactivos.
-   - **Filtros dinámicos**: Selección de combustible (Gasolina 95, Diésel A, Gasolina 98, Diésel Premium), búsqueda por marca o calle, y filtro por municipio.
+   - **Filtros dinámicos**: Selector de provincia (preparado para multi-provincia), selector de municipio filtrado dinámicamente, selección de combustible (Gasolina 95, Diésel A, Gasolina 98, Diésel Premium) y búsqueda por marca o calle.
 
 3. **Algoritmo de Enrutamiento Inteligente y Optimización Multiobjetivo**:
-   - Geolocalización nativa mediante la API HTML5 (con soporte HTTPS en GitHub Pages, fijación manual de chincheta en el mapa 🎯 y fallback a Valencia Centro).
+   - Petición proactiva de geolocalización nativa mediante la API HTML5 (con soporte HTTPS en GitHub Pages, fijación manual de chincheta en el mapa 🎯 y centrado silencioso en la provincia seleccionada si no se concede permiso).
    - **Control deslizante interactivo ($\alpha \in [0, 1]$)**:
      - $\alpha = 0$: Prioriza 100% la gasolinera más cercana (mínimos km a recorrer).
      - $\alpha = 1$: Prioriza 100% la gasolinera más económica dentro del radio operativo razonable.
@@ -40,8 +40,8 @@ Este proyecto ha sido un intento de probar el nuevo mundo del *vibe coding* con 
    - Tarjetas flotantes y botones táctiles optimizados para su uso con una mano.
 
 5. **Automatización y Despliegue Continuo (CI/CD)**:
-   - Flujo de GitHub Actions en `.github/workflows/deploy.yml`.
-   - Programado diariamente a las **08:00 UTC** (tras la actualización de precios matutina) y en cada `push`.
+   - Flujo de GitHub Actions en `.github/workflows/daily-scraper.yml` y `.github/workflows/deploy.yml`.
+   - Programado diariamente a las **06:25 UTC** (08:25 hora peninsular tras la actualización matutina de MITECO) y en cada `push`.
    - Ejecuta el scraper, commitea los cambios en `stations.json` si hay nuevos datos, compila el frontend con Vite y despliega automáticamente a **GitHub Pages**.
 
 ---

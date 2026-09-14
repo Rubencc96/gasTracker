@@ -9,6 +9,7 @@ import 'leaflet.markercluster';
 
 import {
   FUEL_TYPES,
+  PROVINCES,
   loadStationsData,
   getLatestPrice,
   getStationStats,
@@ -28,6 +29,8 @@ export function gasApp() {
     loading: true,
     error: null,
     stations: [],
+    selectedProvince: '46',
+    provinces: PROVINCES,
     selectedFuel: 'gasoline_95',
     searchQuery: '',
     selectedMunicipality: '',
@@ -83,12 +86,8 @@ export function gasApp() {
         this.loading = true;
         this.stations = await loadStationsData();
 
-        // Extract distinct municipalities
-        const munis = new Set();
-        for (const st of this.stations) {
-          if (st.municipality) munis.add(st.municipality);
-        }
-        this.municipalities = Array.from(munis).sort((a, b) => a.localeCompare(b, 'es'));
+        // Extract distinct municipalities for selected province
+        this.updateMunicipalities();
 
         // Calculate provincial stats for default fuel
         this.updateProvincialStats();
@@ -99,6 +98,8 @@ export function gasApp() {
           this.renderMarkers();
           this.setupWatchers();
           this.loading = false;
+          // Proactively request user location on startup
+          this.requestInitialLocation();
         });
       } catch (err) {
         console.error('Failed to initialize gas tracker:', err);
@@ -108,11 +109,35 @@ export function gasApp() {
     },
 
     /**
+     * Update distinct municipalities list based on current province
+     */
+    updateMunicipalities() {
+      const munis = new Set();
+      const provPrefix = this.selectedProvince;
+      for (const st of this.stations) {
+        if (provPrefix && st.postal_code && !st.postal_code.startsWith(provPrefix)) continue;
+        if (st.municipality) munis.add(st.municipality);
+      }
+      this.municipalities = Array.from(munis).sort((a, b) => a.localeCompare(b, 'es'));
+    },
+
+    /**
      * Setup Alpine watchers for reactive filtering
      */
     setupWatchers() {
       this.$watch('searchQuery', () => {
         this.renderMarkers();
+      });
+
+      this.$watch('selectedProvince', (newProv) => {
+        this.selectedMunicipality = '';
+        this.updateMunicipalities();
+        this.updateProvincialStats();
+        this.renderMarkers();
+        const prov = this.provinces[newProv];
+        if (prov && this.map) {
+          this.map.flyTo(prov.center, prov.zoom, { duration: 0.8 });
+        }
       });
 
       this.$watch('selectedMunicipality', (val) => {
@@ -149,11 +174,13 @@ export function gasApp() {
       const mapContainer = document.getElementById('map');
       if (!mapContainer || this.map) return;
 
-      // Valencia center coordinates
+      const prov = this.provinces[this.selectedProvince] || this.provinces['46'];
+
+      // Province center coordinates
       this.map = L.map('map', {
         zoomControl: false,
         attributionControl: true,
-      }).setView([39.4699, -0.3763], 10);
+      }).setView(prov.center, prov.zoom);
 
       // Add zoom control in top-right
       L.control.zoom({ position: 'topright' }).addTo(this.map);
@@ -253,7 +280,7 @@ export function gasApp() {
      * Update provincial summary stats
      */
     updateProvincialStats() {
-      this.provincialStats = computeProvincialStats(this.stations, this.selectedFuel);
+      this.provincialStats = computeProvincialStats(this.stations, this.selectedFuel, this.selectedProvince);
     },
 
     /**
@@ -292,6 +319,7 @@ export function gasApp() {
       }
 
       const q = this.searchQuery.trim().toLowerCase();
+      const provPrefix = this.selectedProvince;
       const muni = this.selectedMunicipality;
       const fuelId = this.selectedFuel;
       const bounds = (this.filterByVisibleArea && this.map) ? this.map.getBounds() : null;
@@ -299,6 +327,12 @@ export function gasApp() {
       let list = this.stations.filter(st => {
         const price = getLatestPrice(st, fuelId);
         if (price === null) return false;
+
+        // Filter by province if set
+        if (provPrefix) {
+          if (st.province_id && st.province_id !== provPrefix) return false;
+          if (st.postal_code && !st.postal_code.startsWith(provPrefix)) return false;
+        }
 
         if (muni && st.municipality !== muni) return false;
 
@@ -497,25 +531,47 @@ export function gasApp() {
     },
 
     /**
-     * User Geolocation trigger
+     * Proactive initial geolocation request on startup
+     * Silently falls back to province center without warning toasts if denied
      */
-    locateUser(forceValenciaCenter = false) {
-      if (forceValenciaCenter) {
-        this.setUserLocation(39.4699, -0.3763, 'Valencia (Centro)');
-        return;
-      }
-
-      // Check if browser blocks Geolocation due to unsecure HTTP context (e.g. mobile testing on LAN IP)
-      const isLocalHttp = !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-      if (isLocalHttp) {
-        this.showToast('El móvil bloquea el GPS en conexiones HTTP locales. En GitHub Pages (HTTPS) funcionará automáticamente. Usando Valencia Centro.', 'warning');
-        this.setUserLocation(39.4699, -0.3763, 'Valencia (Centro)');
-        return;
-      }
-
+    requestInitialLocation() {
       if (!('geolocation' in navigator)) {
-        this.showToast('Tu navegador no soporta geolocalización. Usando Valencia Centro.', 'warning');
-        this.setUserLocation(39.4699, -0.3763, 'Valencia (Centro)');
+        this.fallbackToProvinceCenter();
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          this.setUserLocation(lat, lng, 'Tu ubicación actual');
+        },
+        error => {
+          // Silent fallback on initial load if user denies or fails
+          console.log('Initial location not granted, using province center silently:', error.message);
+          this.fallbackToProvinceCenter();
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      );
+    },
+
+    /**
+     * Center map silently on current selected province center
+     */
+    fallbackToProvinceCenter() {
+      const prov = this.provinces[this.selectedProvince] || this.provinces['46'];
+      if (this.map && prov) {
+        this.map.flyTo(prov.center, prov.zoom, { duration: 0.8 });
+      }
+    },
+
+    /**
+     * Manual User Geolocation trigger
+     */
+    locateUser() {
+      if (!('geolocation' in navigator)) {
+        this.showToast('Tu navegador no soporta geolocalización.', 'warning');
+        this.fallbackToProvinceCenter();
         return;
       }
 
@@ -533,10 +589,10 @@ export function gasApp() {
         error => {
           console.warn('Geolocation error:', error);
           this.userLocation.locating = false;
-          let msg = 'No se pudo obtener GPS (¿permiso denegado?). Usando Valencia Centro.';
-          if (error.code === error.TIMEOUT) msg = 'Tiempo de espera agotado. Usando Valencia Centro.';
+          let msg = 'No se pudo obtener la ubicación GPS (permiso no concedido o tiempo agotado).';
+          if (error.code === error.TIMEOUT) msg = 'Tiempo de espera agotado al obtener GPS.';
           this.showToast(msg, 'warning');
-          this.setUserLocation(39.4699, -0.3763, 'Valencia (Centro)');
+          this.fallbackToProvinceCenter();
         },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
       );
@@ -714,12 +770,10 @@ export function gasApp() {
     },
 
     /**
-     * Reset map view to full Valencia province
+     * Reset map view to full selected province
      */
     resetMapZoom() {
-      if (this.map) {
-        this.map.flyTo([39.4699, -0.3763], 10, { duration: 0.8 });
-      }
+      this.fallbackToProvinceCenter();
     },
 
     // Helpers for templates
