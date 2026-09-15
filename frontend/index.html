@@ -509,9 +509,9 @@
                       <template x-if="displayMode === 'trend'">
                         <div>
                           <span
-                            :class="getStats(st).trend < -0.002 ? 'text-emerald-700 bg-emerald-50' : getStats(st).trend > 0.002 ? 'text-rose-700 bg-rose-50' : 'text-slate-700 bg-slate-100'"
-                            class="text-xs font-extrabold px-2 py-0.5 rounded-md inline-block"
-                            x-text="getStats(st).trend != null ? `${getStats(st).trend < -0.002 ? '↓' : getStats(st).trend > 0.002 ? '↑' : '='} ${Math.abs(getStats(st).trend).toFixed(3)}€` : '—'"
+                            class="text-xs font-extrabold px-2 py-0.5 rounded-md inline-block shadow-xs transition-colors"
+                            :style="getStats(st).trend != null ? `background-color: ${getContinuousTrendColor(getStats(st).trend)}; color: #ffffff;` : 'background-color: #f1f5f9; color: #64748b;'"
+                            x-text="getStats(st).trend != null ? `${getStats(st).trend < -0.0005 ? '↓' : getStats(st).trend > 0.0005 ? '↑' : '='} ${Math.abs(getStats(st).trend).toFixed(3)}€` : '—'"
                           ></span>
                           <div class="text-[10px] text-slate-400 mt-0.5 font-medium" x-text="formatCurrency(getPrice(st))"></div>
                         </div>
@@ -533,8 +533,8 @@
                       </template>
                       <template x-if="displayMode === 'trend' && getStats(st).trendPercent != null">
                         <span
-                          :class="getStats(st).trend < 0 ? 'text-emerald-600' : getStats(st).trend > 0 ? 'text-rose-500' : 'text-slate-500'"
-                          class="font-medium"
+                          :style="`color: ${getContinuousTrendColor(getStats(st).trend)};`"
+                          class="font-semibold"
                           x-text="`${getStats(st).trendPercent > 0 ? '+' : ''}${getStats(st).trendPercent}% vs 7d`"
                         ></span>
                       </template>
@@ -672,25 +672,29 @@
               </div>
             </template>
 
-            <!-- Trend Mode Legend -->
+            <!-- Trend Mode Continuous Legend -->
             <template x-if="displayMode === 'trend'">
-              <div class="space-y-1">
-                <div class="font-bold text-slate-700">Tendencia (7d):</div>
-                <div class="flex items-center gap-1.5">
-                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-                  <span class="text-slate-600">Bajada fuerte (&gt;1.5c)</span>
+              <div class="space-y-1.5 min-w-[155px]">
+                <div class="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                  <span>Tendencia (7d)</span>
+                  <span class="text-[9px] text-slate-400 font-normal">Escala continua</span>
                 </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                  <span class="text-slate-600">Bajada leve</span>
+                <!-- Continuous gradient bar -->
+                <div
+                  class="h-2.5 w-full rounded-full shadow-inner border border-slate-200/60"
+                  style="background: linear-gradient(to right, #047857 0%, #10b981 25%, #64748b 50%, #f97316 75%, #e11d48 100%);"
+                ></div>
+                <!-- Direction Labels -->
+                <div class="flex items-center justify-between text-[9px] font-bold">
+                  <span class="text-emerald-700">↓ Bajada</span>
+                  <span class="text-slate-500">0.00€</span>
+                  <span class="text-rose-600">↑ Subida</span>
                 </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-                  <span class="text-slate-600">Estable</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                  <span class="text-slate-600">Subida</span>
+                <!-- Domain Bounds -->
+                <div class="flex items-center justify-between text-[9px] text-slate-400 font-medium">
+                  <span x-text="provincialStats.minTrend != null && provincialStats.minTrend < 0 ? `${provincialStats.minTrend.toFixed(3)}€` : '-0.030€'"></span>
+                  <span>Estable</span>
+                  <span x-text="provincialStats.maxTrend != null && provincialStats.maxTrend > 0 ? `+${provincialStats.maxTrend.toFixed(3)}€` : '+0.030€'"></span>
                 </div>
               </div>
             </template>
@@ -727,9 +731,9 @@
               <template x-if="displayMode === 'trend'">
                 <div>
                   <span
-                    :class="getStats(activeMobileStation).trend < -0.002 ? 'text-emerald-700 bg-emerald-50' : getStats(activeMobileStation).trend > 0.002 ? 'text-rose-700 bg-rose-50' : 'text-slate-700 bg-slate-100'"
-                    class="text-xs font-extrabold px-2 py-0.5 rounded-md inline-block"
-                    x-text="getStats(activeMobileStation).trend != null ? `${getStats(activeMobileStation).trend < -0.002 ? '↓' : getStats(activeMobileStation).trend > 0.002 ? '↑' : '='} ${Math.abs(getStats(activeMobileStation).trend).toFixed(3)}€` : '—'"
+                    class="text-xs font-extrabold px-2 py-0.5 rounded-md inline-block shadow-xs"
+                    :style="getStats(activeMobileStation).trend != null ? `background-color: ${getContinuousTrendColor(getStats(activeMobileStation).trend)}; color: #ffffff;` : 'background-color: #f1f5f9; color: #64748b;'"
+                    x-text="getStats(activeMobileStation).trend != null ? `${getStats(activeMobileStation).trend < -0.0005 ? '↓' : getStats(activeMobileStation).trend > 0.0005 ? '↑' : '='} ${Math.abs(getStats(activeMobileStation).trend).toFixed(3)}€` : '—'"
                   ></span>
                   <div class="text-[10px] text-slate-400 mt-0.5 font-medium" x-text="formatCurrency(getPrice(activeMobileStation))"></div>
                 </div>
@@ -888,10 +892,10 @@
               <!-- Trend badge -->
               <template x-if="selectedStation && getStats(selectedStation).trend != null">
                 <span
-                  :class="getStats(selectedStation).trend < 0 ? 'bg-emerald-100 text-emerald-800' : getStats(selectedStation).trend > 0 ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-700'"
-                  class="text-[11px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1"
+                  class="text-[11px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 text-white shadow-xs"
+                  :style="`background-color: ${getContinuousTrendColor(getStats(selectedStation).trend)};`"
                 >
-                  <span x-text="getStats(selectedStation).trend < 0 ? '↓ Bajada' : getStats(selectedStation).trend > 0 ? '↑ Subida' : 'Estable'"></span>
+                  <span x-text="getStats(selectedStation).trend < -0.0005 ? '↓ Bajada' : getStats(selectedStation).trend > 0.0005 ? '↑ Subida' : 'Estable'"></span>
                   <span x-text="`(${getStats(selectedStation).trendPercent > 0 ? '+' : ''}${getStats(selectedStation).trendPercent}%)`"></span>
                 </span>
               </template>

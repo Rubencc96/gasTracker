@@ -3,6 +3,8 @@
  * Handles station fetching, fuel price extraction, and provincial statistics computation.
  */
 
+import { scaleLinear, interpolateLab } from 'd3';
+
 export const PROVINCES = {
   '46': {
     id: '46',
@@ -186,4 +188,28 @@ export function computeProvincialStats(stations, fuelId, provinceId = null) {
     p25,
     p75,
   };
+}
+
+/**
+ * Returns a continuous diverging color for a given 7-day price trend using Lab interpolation.
+ * - Negative trend (drop / savings): Emerald gradient (#047857 to #10b981)
+ * - Zero trend (stable): Neutral slate (#64748b)
+ * - Positive trend (rise / expense): Warm orange to Crimson gradient (#f97316 to #e11d48)
+ *
+ * @param {number|null} trend - The 7-day trend value in €/L
+ * @param {number} [maxDelta=0.03] - Reference symmetric domain bound in €/L
+ * @returns {string} Hex or RGB color string
+ */
+export function getContinuousTrendColor(trend, maxDelta = 0.03) {
+  if (trend === null || typeof trend !== 'number' || isNaN(trend)) {
+    return '#64748b';
+  }
+  const bound = Math.max(0.015, maxDelta);
+  const colorScale = scaleLinear()
+    .domain([-bound, -bound * 0.4, 0, bound * 0.4, bound])
+    .range(['#047857', '#10b981', '#64748b', '#f97316', '#e11d48'])
+    .interpolate(interpolateLab)
+    .clamp(true);
+
+  return colorScale(trend);
 }

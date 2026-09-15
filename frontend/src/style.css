@@ -160,7 +160,26 @@
   border-top-color: #7c3aed;
 }
 
-/* Trend mode marker color tiers */
+/* Continuous Trend marker and cluster styling (dynamic variable-driven) */
+.price-marker-pin.continuous-trend {
+  background: var(--pin-color, #64748b);
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.price-marker-pin.continuous-trend::after {
+  border-top-color: var(--pin-color, #64748b);
+}
+
+.price-cluster-badge.continuous-trend {
+  background: var(--cluster-color, #64748b);
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22), 0 2px 5px rgba(0, 0, 0, 0.12);
+}
+
+/* Trend mode marker color tiers (legacy fallback) */
 .tier-trend-drop-strong {
   background: linear-gradient(135deg, #047857, #10b981);
   border: 1.5px solid #ecfdf5;

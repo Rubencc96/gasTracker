@@ -14,6 +14,7 @@ import {
   getLatestPrice,
   getStationStats,
   computeProvincialStats,
+  getContinuousTrendColor,
 } from '../services/data.js';
 import {
   getSmartRecommendations,
@@ -231,25 +232,16 @@ export function gasApp() {
               .map(m => m.__stationTrend)
               .filter(t => typeof t === 'number');
 
-            let avgTrend = trends.length > 0 ? trends.reduce((acc, t) => acc + t, 0) / trends.length : 0;
-            let tierClass = 'tier-trend-stable';
+            const hasTrends = trends.length > 0;
+            const avgTrend = hasTrends ? trends.reduce((acc, t) => acc + t, 0) / trends.length : 0;
+            const clusterColor = this.getContinuousTrendColor(hasTrends ? avgTrend : null);
 
-            if (avgTrend <= -0.015) {
-              tierClass = 'tier-trend-drop-strong';
-            } else if (avgTrend < -0.002) {
-              tierClass = 'tier-trend-drop-soft';
-            } else if (avgTrend >= 0.015) {
-              tierClass = 'tier-trend-rise-strong';
-            } else if (avgTrend > 0.002) {
-              tierClass = 'tier-trend-rise-soft';
-            }
-
-            const sign = avgTrend > 0.002 ? '↑ +' : avgTrend < -0.002 ? '↓ ' : '= ';
-            const trendLabel = trends.length > 0 ? `${sign}${Math.abs(avgTrend).toFixed(3)}€` : `${count} gasolineras`;
+            const sign = avgTrend > 0.0005 ? '↑ +' : avgTrend < -0.0005 ? '↓ ' : '= ';
+            const trendLabel = hasTrends ? `${sign}${Math.abs(avgTrend).toFixed(3)}€` : `${count} gasolineras`;
 
             return L.divIcon({
               html: `
-                <div class="price-cluster-badge ${tierClass}">
+                <div class="price-cluster-badge continuous-trend" style="--cluster-color: ${clusterColor};">
                   <span>${trendLabel}</span>
                   <span class="cluster-count-pill">${count}</span>
                 </div>
@@ -472,28 +464,20 @@ export function gasApp() {
         const isRecommended = recommendedIds.has(st.id);
 
         let tierClass = 'tier-mid';
+        let pinStyle = '';
         let badgeLabel = '';
 
         if (this.displayMode === 'trend') {
           const trend = stStats.trend;
+          tierClass = 'continuous-trend';
           if (trend === null) {
-            tierClass = 'tier-trend-stable';
+            pinStyle = 'style="--pin-color: #64748b;"';
             badgeLabel = '—';
-          } else if (trend <= -0.015) {
-            tierClass = 'tier-trend-drop-strong';
-            badgeLabel = `↓ ${Math.abs(trend).toFixed(3)}€`;
-          } else if (trend < -0.002) {
-            tierClass = 'tier-trend-drop-soft';
-            badgeLabel = `↓ ${Math.abs(trend).toFixed(3)}€`;
-          } else if (trend >= 0.015) {
-            tierClass = 'tier-trend-rise-strong';
-            badgeLabel = `↑ +${trend.toFixed(3)}€`;
-          } else if (trend > 0.002) {
-            tierClass = 'tier-trend-rise-soft';
-            badgeLabel = `↑ +${trend.toFixed(3)}€`;
           } else {
-            tierClass = 'tier-trend-stable';
-            badgeLabel = `= 0.000€`;
+            const trendColor = this.getContinuousTrendColor(trend);
+            pinStyle = `style="--pin-color: ${trendColor};"`;
+            const sign = trend < -0.0005 ? '↓ ' : trend > 0.0005 ? '↑ +' : '= ';
+            badgeLabel = `${sign}${Math.abs(trend).toFixed(3)}€`;
           }
         } else {
           // Price mode
@@ -514,7 +498,7 @@ export function gasApp() {
           : `${st.name}: ${price.toFixed(3)} €/L`;
 
         const iconHtml = `
-          <div class="price-marker-pin ${tierClass}" title="${titleText}">
+          <div class="price-marker-pin ${tierClass}" ${pinStyle} title="${titleText}">
             ${badgeLabel}
           </div>
         `;
@@ -532,11 +516,10 @@ export function gasApp() {
         marker.__stationTrend = stStats.trend;
         marker.__stationId = st.id;
 
+        const trendColor = this.getContinuousTrendColor(stStats.trend);
         const trendBadge = stStats.trend !== null
-          ? `<span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${
-              stStats.trend < 0 ? 'bg-emerald-100 text-emerald-800' : stStats.trend > 0 ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'
-            }">
-              ${stStats.trend < 0 ? '↓' : stStats.trend > 0 ? '↑' : '='} ${Math.abs(stStats.trend).toFixed(3)}€ (${stStats.trendPercent > 0 ? '+' : ''}${stStats.trendPercent}%)
+          ? `<span class="inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full text-white shadow-xs" style="background-color: ${trendColor};">
+              ${stStats.trend < -0.0005 ? '↓' : stStats.trend > 0.0005 ? '↑' : '='} ${Math.abs(stStats.trend).toFixed(3)}€ (${stStats.trendPercent > 0 ? '+' : ''}${stStats.trendPercent}%)
             </span>`
           : '';
 
@@ -886,6 +869,15 @@ export function gasApp() {
 
     formatCurrency(val) {
       return typeof val === 'number' ? `${val.toFixed(3)} €` : '—';
+    },
+
+    getContinuousTrendColor(trend) {
+      const maxBound = Math.max(
+        0.03,
+        Math.abs(this.provincialStats?.minTrend || 0),
+        Math.abs(this.provincialStats?.maxTrend || 0)
+      );
+      return getContinuousTrendColor(trend, maxBound);
     },
   };
 }
