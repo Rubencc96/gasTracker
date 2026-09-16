@@ -570,7 +570,7 @@
         class="h-full relative overflow-hidden bg-slate-100"
       >
         <!-- The Leaflet map element -->
-        <div id="map" class="w-full h-full"></div>
+        <div id="map" x-ignore class="w-full h-full"></div>
 
         <!-- Location Picker Mode Helper Banner -->
         <div
@@ -698,69 +698,6 @@
                 </div>
               </div>
             </template>
-          </div>
-        </div>
-
-        <!-- MOBILE FLOATING STATION PREVIEW CARD (When clicking a marker on mobile map) -->
-        <div
-          x-show="mobileTab === 'map' && activeMobileStation"
-          x-transition:enter="transition ease-out duration-200"
-          x-transition:enter-start="opacity-0 translate-y-6"
-          x-transition:enter-end="opacity-100 translate-y-0"
-          x-transition:leave="transition ease-in duration-150"
-          x-transition:leave-start="opacity-100 translate-y-0"
-          x-transition:leave-end="opacity-0 translate-y-6"
-          class="md:hidden absolute bottom-20 left-3 right-3 z-30 bg-white/98 backdrop-blur-md rounded-2xl shadow-float border border-slate-200 p-3.5"
-        >
-          <div class="flex items-start justify-between gap-2 mb-2">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-1.5 mb-0.5">
-                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700" x-text="activeMobileStation?.locality || activeMobileStation?.municipality"></span>
-                <h4 class="font-bold text-xs text-slate-900 truncate" x-text="activeMobileStation?.name"></h4>
-              </div>
-              <p class="text-[11px] text-slate-500 truncate" x-text="`${activeMobileStation?.address}, ${activeMobileStation?.municipality}`"></p>
-            </div>
-
-            <div class="text-right shrink-0">
-              <template x-if="displayMode === 'price'">
-                <span
-                  class="text-sm font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md inline-block"
-                  x-text="formatCurrency(getPrice(activeMobileStation))"
-                ></span>
-              </template>
-              <template x-if="displayMode === 'trend'">
-                <div>
-                  <span
-                    class="text-xs font-extrabold px-2 py-0.5 rounded-md inline-block shadow-xs"
-                    :style="getStats(activeMobileStation).trend != null ? `background-color: ${getContinuousTrendColor(getStats(activeMobileStation).trend)}; color: #ffffff;` : 'background-color: #f1f5f9; color: #64748b;'"
-                    x-text="getStats(activeMobileStation).trend != null ? `${getStats(activeMobileStation).trend < -0.0005 ? '↓' : getStats(activeMobileStation).trend > 0.0005 ? '↑' : '='} ${Math.abs(getStats(activeMobileStation).trend).toFixed(3)}€` : '—'"
-                  ></span>
-                  <div class="text-[10px] text-slate-400 mt-0.5 font-medium" x-text="formatCurrency(getPrice(activeMobileStation))"></div>
-                </div>
-              </template>
-              <button
-                @click="closeMobileStation()"
-                class="block ml-auto mt-1 text-slate-400 hover:text-slate-600 p-0.5 text-xs font-bold"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-
-          <!-- Action buttons row in mobile bottom card -->
-          <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
-            <button
-              @click="openStationModal(activeMobileStation)"
-              class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl transition text-center"
-            >
-              Historial 7d 📊
-            </button>
-            <button
-              @click="traceRoute(activeMobileStation)"
-              class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold rounded-xl shadow-xs transition text-center"
-            >
-              Trazar ruta 🚗
-            </button>
           </div>
         </div>
 

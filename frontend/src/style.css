@@ -32,18 +32,46 @@
   z-index: 1;
 }
 
-/* Reset default leaflet div-icon background & border */
-.custom-price-marker-wrapper,
-.custom-cluster-marker-wrapper,
+/* Reset default leaflet div-icon background & border and ensure flex centering over iconAnchor */
+.custom-price-marker-wrapper {
+  background: transparent !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-cluster-marker-wrapper {
+  background: transparent !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
 .user-location-marker-wrapper {
   background: transparent !important;
   border: none !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Disable inner transitions during leaflet zoom animations to prevent desync */
+/* Disable inner transitions and animations during leaflet zoom animations to prevent desync */
 .leaflet-zoom-anim .price-marker-pin,
-.leaflet-zoom-anim .price-cluster-badge {
+.leaflet-zoom-anim .price-cluster-badge,
+.leaflet-cluster-anim .price-marker-pin,
+.leaflet-cluster-anim .price-cluster-badge,
+.leaflet-zoom-anim .user-location-marker-wrapper,
+.leaflet-zoom-anim .user-location-marker,
+.leaflet-zoom-anim .user-location-pulse,
+.leaflet-zoom-anim .user-location-dot,
+.leaflet-cluster-anim .user-location-marker-wrapper,
+.leaflet-cluster-anim .user-location-marker,
+.leaflet-cluster-anim .user-location-pulse,
+.leaflet-cluster-anim .user-location-dot {
   transition: none !important;
+  animation: none !important;
 }
 
 /* Custom Individual Marker Styling */
@@ -59,7 +87,7 @@
   letter-spacing: -0.02em;
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: box-shadow 0.15s ease;
   cursor: pointer;
   white-space: nowrap;
   position: relative;
@@ -237,32 +265,45 @@
   width: 22px;
   height: 22px;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
 }
+
 .user-location-dot {
   width: 14px;
   height: 14px;
   background-color: #2563eb;
   border: 2.5px solid #ffffff;
   border-radius: 50%;
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
 }
+
 .user-location-pulse {
-  width: 22px;
-  height: 22px;
-  background-color: rgba(37, 99, 235, 0.35);
+  position: absolute;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  animation: user-pulse 1.8s ease-out infinite;
+  z-index: 1;
+  pointer-events: none;
+  animation: user-pulse 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
 }
+
 @keyframes user-pulse {
   0% {
-    transform: scale(0.6);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.6);
     opacity: 1;
   }
+  70% {
+    box-shadow: 0 0 0 14px rgba(37, 99, 235, 0);
+    opacity: 0.8;
+  }
   100% {
-    transform: scale(2.2);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
     opacity: 0;
   }
 }
@@ -285,8 +326,8 @@
 
 /* Custom Leaflet popup overrides */
 .leaflet-popup-content-wrapper {
-  border-radius: 12px !important;
-  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
   padding: 0 !important;
   overflow: hidden;
 }
@@ -296,4 +337,25 @@
 }
 .leaflet-popup-tip {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+}
+.leaflet-popup-close-button {
+  top: 8px !important;
+  right: 8px !important;
+  padding: 4px !important;
+  width: 26px !important;
+  height: 26px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #94a3b8 !important;
+  font-size: 16px !important;
+  font-weight: bold !important;
+  border-radius: 8px !important;
+  transition: color 0.15s, background-color 0.15s !important;
+  z-index: 10 !important;
+}
+.leaflet-popup-close-button:hover,
+.leaflet-popup-close-button:active {
+  color: #1e293b !important;
+  background-color: #f1f5f9 !important;
 }

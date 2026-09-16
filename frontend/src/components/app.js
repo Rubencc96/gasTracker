@@ -42,7 +42,6 @@ export function gasApp() {
     sortBy: 'price', // 'price' | 'trend_drop' | 'trend_rise' | 'distance' | 'savings'
     viewMode: 'both', // 'both' | 'map' | 'list'
     mobileTab: 'map', // 'map' | 'list' | 'recommendations'
-    activeMobileStation: null,
     preferenceAlpha: 0.5, // 0 = closest, 1 = cheapest
     isPickingLocationOnMap: false,
     provincialStats: {},
@@ -84,6 +83,7 @@ export function gasApp() {
      * Initialization lifecycle
      */
     async init() {
+      window.__gasTrackerApp = this;
       try {
         this.loading = true;
         this.stations = await loadStationsData();
@@ -223,6 +223,9 @@ export function gasApp() {
         maxClusterRadius: 40, // Clustered tightly so nearby stations merge cleanly
         spiderfyOnMaxZoom: true,
         zoomToBoundsOnClick: true,
+        animate: false, // Disables async CSS transition lock that desyncs markers on rapid zoom / open popups
+        animateAddingMarkers: false,
+        disableClusteringAtZoom: 16,
         iconCreateFunction: (cluster) => {
           const markers = cluster.getAllChildMarkers();
           const count = cluster.getChildCount();
@@ -292,6 +295,16 @@ export function gasApp() {
         if (this.filterByVisibleArea) {
           this.viewportUpdateCounter++;
           this.renderMarkers();
+        }
+      });
+
+      // Ensure markercluster state is completely cleanly unlocked after any zoom and user marker position is kept strictly in sync
+      this.map.on('zoomend moveend', () => {
+        if (this.clusterGroup && this.clusterGroup._inZoomAnimation) {
+          this.clusterGroup._inZoomAnimation = 0;
+        }
+        if (this.userMarker) {
+          this.userMarker.update();
         }
       });
 
@@ -524,30 +537,60 @@ export function gasApp() {
           : '';
 
         const popupHtml = `
-          <div class="p-3 max-w-xs font-sans text-slate-800">
-            <div class="flex items-start justify-between gap-2 mb-1">
-              <h4 class="font-bold text-sm text-slate-900 leading-tight">${st.name}</h4>
-              <span class="text-xs font-extrabold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+          <div class="p-3.5 max-w-[280px] sm:max-w-xs font-sans text-slate-800">
+            <div class="flex items-start justify-between gap-2 mb-1.5 pr-6">
+              <div class="min-w-0 flex-1">
+                <h4 class="font-bold text-sm text-slate-900 leading-snug truncate" title="${st.name}">${st.name}</h4>
+                <p class="text-xs text-slate-500 truncate mt-0.5">${st.address}, ${st.municipality}</p>
+              </div>
+              <span class="text-xs font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-2 py-0.5 rounded-lg whitespace-nowrap shrink-0">
                 ${price.toFixed(3)} €/L
               </span>
             </div>
-            <p class="text-xs text-slate-500 mb-1.5">${st.address}, ${st.municipality}</p>
-            ${st.schedule ? `<p class="text-[11px] text-slate-400 mb-2">🕒 ${st.schedule}</p>` : ''}
-            <div class="flex items-center justify-between pt-2 border-t border-slate-100 mt-2">
+
+            <div class="flex items-center justify-between gap-1 text-[11px] text-slate-400 mb-2.5 pt-1 border-t border-slate-100">
+              ${st.schedule ? `<span class="truncate">🕒 ${st.schedule}</span>` : '<span></span>'}
               ${trendBadge}
+            </div>
+
+            <div class="space-y-1.5 pt-1.5 border-t border-slate-100">
               <button
-                onclick="window.__gasTrackerApp.openStationModalById('${st.id}')"
-                class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:underline inline-flex items-center gap-1"
+                onclick="window.__gasTrackerApp.traceRouteById('${st.id}')"
+                class="w-full py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Ver historial →
+                <span>🚗</span>
+                <span>Trazar ruta</span>
               </button>
+
+              <div class="grid grid-cols-2 gap-1.5">
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=${st.latitude},${st.longitude}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 text-center no-underline cursor-pointer"
+                >
+                  <span>Google Maps</span>
+                  <span class="text-[10px]">↗</span>
+                </a>
+
+                <button
+                  onclick="window.__gasTrackerApp.openStationModalById('${st.id}')"
+                  class="py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 border border-emerald-200/60 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <span>📊</span>
+                  <span>Historial</span>
+                </button>
+              </div>
             </div>
           </div>
         `;
 
-        marker.bindPopup(popupHtml);
-        marker.on('click', () => {
-          this.activeMobileStation = st;
+        marker.bindPopup(popupHtml, {
+          autoPan: true,
+          autoPanPadding: [20, 20],
+          closeButton: true,
+          maxWidth: 300,
+          minWidth: 260,
         });
         markersToAdd.push(marker);
         this.stationMarkersMap.set(st.id, marker);
@@ -570,16 +613,11 @@ export function gasApp() {
       }
     },
 
-    closeMobileStation() {
-      this.activeMobileStation = null;
-    },
-
     /**
      * Focus station on map and smoothly uncluster if needed
      */
     focusStation(station) {
       if (!this.map || !station) return;
-      this.activeMobileStation = station;
       const marker = this.stationMarkersMap.get(station.id);
 
       if (window.innerWidth < 768) {
@@ -729,10 +767,21 @@ export function gasApp() {
         `,
         iconSize: [22, 22],
         iconAnchor: [11, 11],
+        popupAnchor: [0, -12],
       });
 
       this.userMarker = L.marker([lat, lng], { icon: userIcon, zIndexOffset: 1000 }).addTo(this.map);
-      this.userMarker.bindPopup(`<div class="p-2 font-sans text-xs font-semibold text-slate-800">📍 ${label}</div>`);
+      this.userMarker.bindPopup(
+        `<div class="p-2.5 font-sans text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+          <span>📍</span>
+          <span>${label}</span>
+        </div>`,
+        {
+          autoPan: true,
+          autoPanPadding: [20, 20],
+          closeButton: true,
+        }
+      );
 
       // Fly to user location
       this.map.flyTo([lat, lng], 13, { duration: 1.2 });
@@ -845,6 +894,11 @@ export function gasApp() {
     openStationModalById(stationId) {
       const st = this.stations.find(s => s.id === stationId);
       if (st) this.openStationModal(st);
+    },
+
+    traceRouteById(stationId) {
+      const st = this.stations.find(s => s.id === stationId);
+      if (st) this.traceRoute(st);
     },
 
     closeStationModal() {
