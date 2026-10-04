@@ -2690,7 +2690,7 @@
       {
         "date": "2026-10-04",
         "price_gasoline_95": 1.905,
-        "price_diesel_a": 1.955,
+        "price_diesel_a": 1.965,
         "price_gasoline_98": null,
         "price_diesel_premium": 2.005
       }
@@ -2699,9 +2699,9 @@
       "mean_price_gasoline_95": 1.999,
       "trend_price_gasoline_95": -0.194,
       "trend_percent_price_gasoline_95": -9.24,
-      "mean_price_diesel_a": 2.0,
-      "trend_price_diesel_a": -0.064,
-      "trend_percent_price_diesel_a": -3.17,
+      "mean_price_diesel_a": 2.001,
+      "trend_price_diesel_a": -0.054,
+      "trend_percent_price_diesel_a": -2.67,
       "mean_price_gasoline_98": null,
       "trend_price_gasoline_98": null,
       "trend_percent_price_gasoline_98": null,
@@ -8803,16 +8803,16 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.855,
+        "price_gasoline_95": 1.865,
         "price_diesel_a": 1.959,
         "price_gasoline_98": 2.015,
         "price_diesel_premium": 2.009
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.948,
-      "trend_price_gasoline_95": -0.19,
-      "trend_percent_price_gasoline_95": -9.29,
+      "mean_price_gasoline_95": 1.95,
+      "trend_price_gasoline_95": -0.18,
+      "trend_percent_price_gasoline_95": -8.8,
       "mean_price_diesel_a": 1.987,
       "trend_price_diesel_a": -0.046,
       "trend_percent_price_diesel_a": -2.29,
@@ -15608,16 +15608,16 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.879,
+        "price_gasoline_95": 1.889,
         "price_diesel_a": 1.949,
         "price_gasoline_98": 1.989,
         "price_diesel_premium": null
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.975,
-      "trend_price_gasoline_95": -0.196,
-      "trend_percent_price_gasoline_95": -9.45,
+      "mean_price_gasoline_95": 1.976,
+      "trend_price_gasoline_95": -0.186,
+      "trend_percent_price_gasoline_95": -8.96,
       "mean_price_diesel_a": 1.978,
       "trend_price_diesel_a": -0.046,
       "trend_percent_price_diesel_a": -2.31,
@@ -16355,16 +16355,16 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.905,
+        "price_gasoline_95": 1.915,
         "price_diesel_a": 1.979,
         "price_gasoline_98": 2.015,
         "price_diesel_premium": 2.029
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.999,
-      "trend_price_gasoline_95": -0.194,
-      "trend_percent_price_gasoline_95": -9.24,
+      "mean_price_gasoline_95": 2.001,
+      "trend_price_gasoline_95": -0.184,
+      "trend_percent_price_gasoline_95": -8.77,
       "mean_price_diesel_a": 2.008,
       "trend_price_diesel_a": -0.046,
       "trend_percent_price_diesel_a": -2.27,
@@ -17185,16 +17185,16 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.869,
+        "price_gasoline_95": 1.879,
         "price_diesel_a": 1.909,
         "price_gasoline_98": 1.979,
         "price_diesel_premium": 1.959
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.967,
-      "trend_price_gasoline_95": -0.196,
-      "trend_percent_price_gasoline_95": -9.49,
+      "mean_price_gasoline_95": 1.968,
+      "trend_price_gasoline_95": -0.186,
+      "trend_percent_price_gasoline_95": -9.01,
       "mean_price_diesel_a": 1.942,
       "trend_price_diesel_a": -0.06,
       "trend_percent_price_diesel_a": -3.05,
@@ -19343,19 +19343,19 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.885,
-        "price_diesel_a": 1.929,
+        "price_gasoline_95": 1.895,
+        "price_diesel_a": 1.939,
         "price_gasoline_98": 1.995,
         "price_diesel_premium": 1.979
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.978,
-      "trend_price_gasoline_95": -0.19,
-      "trend_percent_price_gasoline_95": -9.16,
-      "mean_price_diesel_a": 1.956,
-      "trend_price_diesel_a": -0.046,
-      "trend_percent_price_diesel_a": -2.33,
+      "mean_price_gasoline_95": 1.98,
+      "trend_price_gasoline_95": -0.18,
+      "trend_percent_price_gasoline_95": -8.67,
+      "mean_price_diesel_a": 1.958,
+      "trend_price_diesel_a": -0.036,
+      "trend_percent_price_diesel_a": -1.82,
       "mean_price_gasoline_98": 2.09,
       "trend_price_gasoline_98": -0.19,
       "trend_percent_price_gasoline_98": -8.7,
@@ -22415,7 +22415,7 @@
       {
         "date": "2026-10-04",
         "price_gasoline_95": 1.875,
-        "price_diesel_a": 1.939,
+        "price_diesel_a": 1.949,
         "price_gasoline_98": 2.035,
         "price_diesel_premium": 1.989
       }
@@ -22424,9 +22424,9 @@
       "mean_price_gasoline_95": 1.962,
       "trend_price_gasoline_95": -0.184,
       "trend_percent_price_gasoline_95": -8.94,
-      "mean_price_diesel_a": 1.967,
-      "trend_price_diesel_a": -0.046,
-      "trend_percent_price_diesel_a": -2.32,
+      "mean_price_diesel_a": 1.968,
+      "trend_price_diesel_a": -0.036,
+      "trend_percent_price_diesel_a": -1.81,
       "mean_price_gasoline_98": 2.12,
       "trend_price_gasoline_98": -0.174,
       "trend_percent_price_gasoline_98": -7.88,
@@ -22809,7 +22809,7 @@
       {
         "date": "2026-10-04",
         "price_gasoline_95": 1.849,
-        "price_diesel_a": 1.959,
+        "price_diesel_a": 1.969,
         "price_gasoline_98": 2.009,
         "price_diesel_premium": 2.009
       }
@@ -22818,9 +22818,9 @@
       "mean_price_gasoline_95": 1.947,
       "trend_price_gasoline_95": -0.2,
       "trend_percent_price_gasoline_95": -9.76,
-      "mean_price_diesel_a": 1.989,
-      "trend_price_diesel_a": -0.046,
-      "trend_percent_price_diesel_a": -2.29,
+      "mean_price_diesel_a": 1.991,
+      "trend_price_diesel_a": -0.036,
+      "trend_percent_price_diesel_a": -1.8,
       "mean_price_gasoline_98": 2.107,
       "trend_price_gasoline_98": -0.2,
       "trend_percent_price_gasoline_98": -9.05,
@@ -26605,16 +26605,16 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.835,
+        "price_gasoline_95": 1.845,
         "price_diesel_a": 1.959,
         "price_gasoline_98": 1.995,
         "price_diesel_premium": 2.009
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.95,
-      "trend_price_gasoline_95": -0.224,
-      "trend_percent_price_gasoline_95": -10.88,
+      "mean_price_gasoline_95": 1.952,
+      "trend_price_gasoline_95": -0.214,
+      "trend_percent_price_gasoline_95": -10.39,
       "mean_price_diesel_a": 1.984,
       "trend_price_diesel_a": -0.04,
       "trend_percent_price_diesel_a": -2.0,
@@ -29890,16 +29890,16 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.855,
+        "price_gasoline_95": 1.865,
         "price_diesel_a": 1.955,
         "price_gasoline_98": 2.015,
         "price_diesel_premium": 1.995
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.952,
-      "trend_price_gasoline_95": -0.194,
-      "trend_percent_price_gasoline_95": -9.47,
+      "mean_price_gasoline_95": 1.954,
+      "trend_price_gasoline_95": -0.184,
+      "trend_percent_price_gasoline_95": -8.98,
       "mean_price_diesel_a": 1.975,
       "trend_price_diesel_a": -0.034,
       "trend_percent_price_diesel_a": -1.71,
@@ -29974,7 +29974,7 @@
       {
         "date": "2026-10-04",
         "price_gasoline_95": 1.849,
-        "price_diesel_a": 1.949,
+        "price_diesel_a": 1.959,
         "price_gasoline_98": 2.009,
         "price_diesel_premium": null
       }
@@ -29983,9 +29983,9 @@
       "mean_price_gasoline_95": 1.948,
       "trend_price_gasoline_95": -0.206,
       "trend_percent_price_gasoline_95": -10.02,
-      "mean_price_diesel_a": 1.975,
-      "trend_price_diesel_a": -0.04,
-      "trend_percent_price_diesel_a": -2.01,
+      "mean_price_diesel_a": 1.976,
+      "trend_price_diesel_a": -0.03,
+      "trend_percent_price_diesel_a": -1.51,
       "mean_price_gasoline_98": 2.109,
       "trend_price_gasoline_98": -0.206,
       "trend_percent_price_gasoline_98": -9.3,
@@ -30630,16 +30630,16 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.895,
+        "price_gasoline_95": 1.905,
         "price_diesel_a": 1.979,
         "price_gasoline_98": 2.055,
         "price_diesel_premium": 2.029
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.993,
-      "trend_price_gasoline_95": -0.204,
-      "trend_percent_price_gasoline_95": -9.72,
+      "mean_price_gasoline_95": 1.994,
+      "trend_price_gasoline_95": -0.194,
+      "trend_percent_price_gasoline_95": -9.24,
       "mean_price_diesel_a": 2.006,
       "trend_price_diesel_a": -0.046,
       "trend_percent_price_diesel_a": -2.27,
@@ -33189,16 +33189,16 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.858,
+        "price_gasoline_95": 1.878,
         "price_diesel_a": 1.969,
         "price_gasoline_98": null,
         "price_diesel_premium": 2.064
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.957,
-      "trend_price_gasoline_95": -0.206,
-      "trend_percent_price_gasoline_95": -9.98,
+      "mean_price_gasoline_95": 1.96,
+      "trend_price_gasoline_95": -0.186,
+      "trend_percent_price_gasoline_95": -9.01,
       "mean_price_diesel_a": 1.987,
       "trend_price_diesel_a": -0.045,
       "trend_percent_price_diesel_a": -2.23,
@@ -34849,16 +34849,16 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.865,
+        "price_gasoline_95": 1.875,
         "price_diesel_a": 1.969,
         "price_gasoline_98": 2.025,
         "price_diesel_premium": 2.019
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.967,
-      "trend_price_gasoline_95": -0.204,
-      "trend_percent_price_gasoline_95": -9.86,
+      "mean_price_gasoline_95": 1.968,
+      "trend_price_gasoline_95": -0.194,
+      "trend_percent_price_gasoline_95": -9.38,
       "mean_price_diesel_a": 1.998,
       "trend_price_diesel_a": -0.04,
       "trend_percent_price_diesel_a": -1.99,
@@ -36101,7 +36101,7 @@
       {
         "date": "2026-10-04",
         "price_gasoline_95": 1.885,
-        "price_diesel_a": 1.969,
+        "price_diesel_a": 1.979,
         "price_gasoline_98": 2.005,
         "price_diesel_premium": 2.019
       }
@@ -36110,9 +36110,9 @@
       "mean_price_gasoline_95": 1.979,
       "trend_price_gasoline_95": -0.194,
       "trend_percent_price_gasoline_95": -9.33,
-      "mean_price_diesel_a": 1.998,
-      "trend_price_diesel_a": -0.046,
-      "trend_percent_price_diesel_a": -2.28,
+      "mean_price_diesel_a": 1.999,
+      "trend_price_diesel_a": -0.036,
+      "trend_percent_price_diesel_a": -1.79,
       "mean_price_gasoline_98": 2.1,
       "trend_price_gasoline_98": -0.194,
       "trend_percent_price_gasoline_98": -8.82,
@@ -37664,7 +37664,7 @@
       {
         "date": "2026-10-04",
         "price_gasoline_95": 1.839,
-        "price_diesel_a": 1.945,
+        "price_diesel_a": 1.955,
         "price_gasoline_98": 1.949,
         "price_diesel_premium": null
       }
@@ -37673,9 +37673,9 @@
       "mean_price_gasoline_95": 1.941,
       "trend_price_gasoline_95": -0.21,
       "trend_percent_price_gasoline_95": -10.25,
-      "mean_price_diesel_a": 1.97,
-      "trend_price_diesel_a": -0.04,
-      "trend_percent_price_diesel_a": -2.02,
+      "mean_price_diesel_a": 1.972,
+      "trend_price_diesel_a": -0.03,
+      "trend_percent_price_diesel_a": -1.51,
       "mean_price_gasoline_98": 2.052,
       "trend_price_gasoline_98": -0.21,
       "trend_percent_price_gasoline_98": -9.73,
@@ -44130,7 +44130,7 @@
       {
         "date": "2026-10-04",
         "price_gasoline_95": 1.855,
-        "price_diesel_a": 1.939,
+        "price_diesel_a": 1.949,
         "price_gasoline_98": 1.965,
         "price_diesel_premium": null
       }
@@ -44139,9 +44139,9 @@
       "mean_price_gasoline_95": 1.957,
       "trend_price_gasoline_95": -0.204,
       "trend_percent_price_gasoline_95": -9.91,
-      "mean_price_diesel_a": 1.97,
-      "trend_price_diesel_a": -0.046,
-      "trend_percent_price_diesel_a": -2.32,
+      "mean_price_diesel_a": 1.972,
+      "trend_price_diesel_a": -0.036,
+      "trend_percent_price_diesel_a": -1.81,
       "mean_price_gasoline_98": 2.067,
       "trend_price_gasoline_98": -0.204,
       "trend_percent_price_gasoline_98": -9.41,
@@ -47836,25 +47836,25 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.858,
-        "price_diesel_a": 1.969,
+        "price_gasoline_95": 1.868,
+        "price_diesel_a": 1.989,
         "price_gasoline_98": null,
-        "price_diesel_premium": 2.054
+        "price_diesel_premium": 2.074
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.96,
-      "trend_price_gasoline_95": -0.196,
-      "trend_percent_price_gasoline_95": -9.54,
-      "mean_price_diesel_a": 1.99,
-      "trend_price_diesel_a": -0.055,
-      "trend_percent_price_diesel_a": -2.72,
+      "mean_price_gasoline_95": 1.961,
+      "trend_price_gasoline_95": -0.186,
+      "trend_percent_price_gasoline_95": -9.06,
+      "mean_price_diesel_a": 1.992,
+      "trend_price_diesel_a": -0.035,
+      "trend_percent_price_diesel_a": -1.73,
       "mean_price_gasoline_98": null,
       "trend_price_gasoline_98": null,
       "trend_percent_price_gasoline_98": null,
-      "mean_price_diesel_premium": 2.075,
-      "trend_price_diesel_premium": -0.055,
-      "trend_percent_price_diesel_premium": -2.61
+      "mean_price_diesel_premium": 2.077,
+      "trend_price_diesel_premium": -0.035,
+      "trend_percent_price_diesel_premium": -1.66
     }
   },
   {
@@ -47919,25 +47919,25 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.858,
-        "price_diesel_a": 1.969,
+        "price_gasoline_95": 1.868,
+        "price_diesel_a": 1.989,
         "price_gasoline_98": null,
-        "price_diesel_premium": 2.054
+        "price_diesel_premium": 2.074
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.96,
-      "trend_price_gasoline_95": -0.196,
-      "trend_percent_price_gasoline_95": -9.54,
-      "mean_price_diesel_a": 1.99,
-      "trend_price_diesel_a": -0.055,
-      "trend_percent_price_diesel_a": -2.72,
+      "mean_price_gasoline_95": 1.961,
+      "trend_price_gasoline_95": -0.186,
+      "trend_percent_price_gasoline_95": -9.06,
+      "mean_price_diesel_a": 1.992,
+      "trend_price_diesel_a": -0.035,
+      "trend_percent_price_diesel_a": -1.73,
       "mean_price_gasoline_98": null,
       "trend_price_gasoline_98": null,
       "trend_percent_price_gasoline_98": null,
-      "mean_price_diesel_premium": 2.075,
-      "trend_price_diesel_premium": -0.055,
-      "trend_percent_price_diesel_premium": -2.61
+      "mean_price_diesel_premium": 2.077,
+      "trend_price_diesel_premium": -0.035,
+      "trend_percent_price_diesel_premium": -1.66
     }
   },
   {
@@ -48500,16 +48500,16 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.895,
+        "price_gasoline_95": 1.905,
         "price_diesel_a": 1.955,
         "price_gasoline_98": 2.005,
         "price_diesel_premium": 2.005
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.999,
-      "trend_price_gasoline_95": -0.204,
-      "trend_percent_price_gasoline_95": -9.72,
+      "mean_price_gasoline_95": 2.0,
+      "trend_price_gasoline_95": -0.194,
+      "trend_percent_price_gasoline_95": -9.24,
       "mean_price_diesel_a": 1.986,
       "trend_price_diesel_a": -0.054,
       "trend_percent_price_diesel_a": -2.69,
@@ -49081,16 +49081,16 @@
       },
       {
         "date": "2026-10-04",
-        "price_gasoline_95": 1.895,
+        "price_gasoline_95": 1.905,
         "price_diesel_a": 1.925,
         "price_gasoline_98": 2.005,
         "price_diesel_premium": 1.975
       }
     ],
     "stats": {
-      "mean_price_gasoline_95": 1.992,
-      "trend_price_gasoline_95": -0.194,
-      "trend_percent_price_gasoline_95": -9.29,
+      "mean_price_gasoline_95": 1.993,
+      "trend_price_gasoline_95": -0.184,
+      "trend_percent_price_gasoline_95": -8.81,
       "mean_price_diesel_a": 1.961,
       "trend_price_diesel_a": -0.06,
       "trend_percent_price_diesel_a": -3.02,
@@ -49829,7 +49829,7 @@
       {
         "date": "2026-10-04",
         "price_gasoline_95": 1.895,
-        "price_diesel_a": 1.955,
+        "price_diesel_a": 1.965,
         "price_gasoline_98": null,
         "price_diesel_premium": null
       }
@@ -49838,9 +49838,9 @@
       "mean_price_gasoline_95": 1.996,
       "trend_price_gasoline_95": -0.204,
       "trend_percent_price_gasoline_95": -9.72,
-      "mean_price_diesel_a": 1.976,
-      "trend_price_diesel_a": -0.044,
-      "trend_percent_price_diesel_a": -2.2,
+      "mean_price_diesel_a": 1.977,
+      "trend_price_diesel_a": -0.034,
+      "trend_percent_price_diesel_a": -1.7,
       "mean_price_gasoline_98": null,
       "trend_price_gasoline_98": null,
       "trend_percent_price_gasoline_98": null,
